@@ -1,0 +1,33 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="au.edu.rmit.trajectory.similarity.persistence.MapMatchedTrajectoryMapper">
+    <cache/>
+    <resultMap id="mapMatchedTrajectoryMap" type="au.edu.rmit.trajectory.similarity.model.MapMatchedTrajectory">
+        <id column="id" property="id"/>
+        <result column="trajectory_id" property="trajectoryId"/>
+        <result column="segments" property="segmentIDs"/>
+    </resultMap>
+
+    <select id="getMapMatchedTrajectory" resultMap="mapMatchedTrajectoryMap">
+        SELECT * FROM map_matched_trajectory WHERE id = #{id}
+    </select>
+
+    <select id="getAllMapMatchedTrajectory" resultMap="mapMatchedTrajectoryMap">
+        SELECT * FROM map_matched_trajectory
+    </select>
+
+    <insert id="insertMapMatchedTrajectory" parameterType="MapMatchedTrajectory">
+        INSERT INTO map_matched_trajectory (id, segments, trajectory_id)
+        VALUES (#{id}, #{segmentIDs}, #{trajectoryId})
+    </insert>
+
+
+    <insert id="insertMapMatchedTrajectories" parameterType="java.util.List">
+        INSERT INTO map_matched_trajectory (id, segments, trajectory_id)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.segmentIDs}, #{item.trajectoryId})
+        </foreach>
+    </insert>
+
+
+</mapper>

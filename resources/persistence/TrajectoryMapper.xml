@@ -1,0 +1,60 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="au.edu.rmit.trajectory.similarity.persistence.TrajectoryMapper">
+
+    <resultMap id="trajectoryMap" type="au.edu.rmit.trajectory.similarity.model.Trajectory">
+        <id column="id" property="id"/>
+        <result column="points" property="pointStr"/>
+        <result column="segments" property="edgeStr"/>
+    </resultMap>
+
+    <select id="getAllTrajectories" resultMap="trajectoryMap">
+        SELECT * FROM trajectory
+    </select>
+
+    <insert id="insertTrajectory" parameterType="au.edu.rmit.trajectory.similarity.model.Trajectory">
+        INSERT INTO trajectory (id, points)
+        VALUES (#{id}, #{pointStr})
+    </insert>
+
+    <insert id="insertTrajectories" parameterType="java.util.List">
+        INSERT INTO trajectory (id, points)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.pointStr})
+        </foreach>
+    </insert>
+
+    <select id="getTrajectory" resultMap="trajectoryMap">
+        SELECT id, points FROM trajectory WHERE id = #{id}
+    </select>
+
+    <select id="getTrajectories" resultMap="trajectoryMap">
+        SELECT * FROM trajectory
+        WHERE id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <delete id="delTrajectories">
+        DELETE FROM trajectory
+        WHERE id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="delAllTrajectories">
+        DELETE FROM trajectory
+    </delete>
+
+    <insert id="updateMMEdges" parameterType="java.util.List">
+        INSERT INTO trajectory (id, segments)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.edgeStr})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        segments = VALUES(segments);
+    </insert>
+</mapper>

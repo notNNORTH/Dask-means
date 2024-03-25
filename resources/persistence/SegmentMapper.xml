@@ -1,0 +1,32 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="au.edu.rmit.trajectory.similarity.persistence.SegmentMapper">
+    <cache/>
+    <resultMap id="segmentMap" type="au.edu.rmit.trajectory.similarity.model.Segment">
+        <id column="id" property="id"/>
+        <result column="length" property="length"/>
+        <result column="latitudes" property="latitudes"/>
+        <result column="longtitudes" property="longtitudes"/>
+    </resultMap>
+
+    <select id="getSegment" resultMap="segmentMap" parameterType="Integer">
+        SELECT * FROM segment where id = #{id}
+    </select>
+
+    <select id="getAllSegment" resultMap="segmentMap">
+        SELECT * FROM segment
+    </select>
+
+    <insert id="insertSegment" parameterType="au.edu.rmit.trajectory.similarity.model.Segment">
+        INSERT INTO segment (id, length, latitudes, longtitudes)
+        VALUES (#{id}, #{length}, #{latitudes},#{longtitudes})
+    </insert>
+
+    <insert id="insertSegments" parameterType="java.util.List">
+        INSERT INTO segment (id, length, latitudes, longtitudes)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.length}, #{item.latitudes}, #{item.longtitudes})
+        </foreach>
+    </insert>
+
+</mapper>
