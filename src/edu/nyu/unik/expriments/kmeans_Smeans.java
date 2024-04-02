@@ -16,10 +16,10 @@ import static au.edu.rmit.trajectory.clustering.kmeans.kmeansAlgorithm.ReadData;
 public class kmeans_Smeans {
     public static void main(String[] args) throws IOException, KeySizeException, KeyDuplicateException {
         // TODO Auto-generated method stub
-        int[] kvalue = new int[]{1000};     //10, 100, 1000
-        int testTime = 1;                   //test one time
+        int[] kvalue = new int[]{1000};     // 10, 100, 1000    the num of cluster centroid
+        int testTime = 1;                   // test one time
         String[] paras = new String[7];
-        paras[0] = "./dataset/US_twitter_average.txt";
+        paras[0] = "./dataset/US_twitter_average.txt";      // with data scale of 200,000
         //Convergence
         //Chicage
         //dataset/NYC_pickup_clean.csv

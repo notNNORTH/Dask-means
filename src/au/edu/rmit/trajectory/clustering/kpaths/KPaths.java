@@ -62,12 +62,12 @@ public class KPaths extends Thread {
 	
 	protected int distanceModel;//0 for EBD, 1 for EDR, 2 for DTW, 3 For Frechet, 4 for haursdoff, 5 for ERP
 	//for Yinyang and bound computation
-	protected  Map<Integer, double[]> trajectoryBounds;// build a lower bound list with all groups and upper bound for each trajectory, 0: upper bound, 1: global lower bound, 2~: lower bound with all different group	
-	protected Map<Integer, ArrayList<Integer>> group;// group id, centers id belong to this group
-	protected Map<Integer, Integer> centerGroup;//center id, group id	
-	protected double[][] innerCentoridDis;//stores the distance between every two centorids
-	protected double[][] innerCentoridDisGroup;//stores the distance between every two centorids
-	protected double[] interMinimumCentoridDis;//store the distance to nearest neighbor of each centorid
+	protected  Map<Integer, double[]> trajectoryBounds;	// build a lower bound list with all groups and upper bound for each trajectory, 0: upper bound, 1: global lower bound, 2~: lower bound with all different group
+	protected Map<Integer, ArrayList<Integer>> group;	// group id, centers id belong to this group
+	protected Map<Integer, Integer> centerGroup;		// center id, group id
+	protected double[][] innerCentoridDis;				//stores the distance between every two centorids
+	protected double[][] innerCentoridDisGroup;			//stores the distance between every two centorids
+	protected double[] interMinimumCentoridDis;			// store the distance to nearest neighbor of each centroid
 	
 	//for storage
 	protected Map<Integer, int[]> datamap; // the trajectory dataset
@@ -132,9 +132,9 @@ public class KPaths extends Thread {
 	}
 	
 	public KPaths(String []args) {
-		datafile = args[0];
-		k = Integer.valueOf(args[1]);
-		trajectoryNumber = Integer.valueOf(args[2]);
+		datafile = args[0];			// dataset path
+		k = Integer.parseInt(args[1]);
+		trajectoryNumber = Integer.parseInt(args[2]);	// data scale
 		edgefile = args[3];
 		graphfile = args[4];
 		maxDistance = new double[6];

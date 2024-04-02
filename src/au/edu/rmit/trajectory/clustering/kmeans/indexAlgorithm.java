@@ -29,7 +29,7 @@ import es.saulvargas.balltrees.BallTreeMatrix;
  */
 public class indexAlgorithm<E> {
 
-	int distanceCompute = 0;
+	int distanceCompute = 0;	// the number of distance calculations
 	int NodeAccess = 0;
 	int dataAccess = 0;
 	int globalNodeid = 1;
@@ -54,23 +54,29 @@ public class indexAlgorithm<E> {
 	public void setGloabalid() {
 		globalNodeid = 1;
 	}
-	/*
-	 * get the count of the tree.
+
+
+	/**
+	 * Use the already known SUM of each leaf node to set the SUM on internal index nodes.
+	 * Or, for each index node, set the sum of all data points it contains.
+	 * @param node a node of index tree
+	 * @param dimension dimension of each data point
+	 * @return attribute SUM of given (indexNode) node
 	 */
-	public double[] updateSum(indexNode root, int dimension) {
-		if(root.isLeaf()) {	
-			return root.getSum();
+	public double[] updateSum(indexNode node, int dimension) {
+		if(node.isLeaf()) {
+			return node.getSum();
 		}
 		else {
-			Set<indexNode> listnode = root.getNodelist();
+			Set<indexNode> listnode = node.getNodelist();
 		//	System.out.println(listnode.size());
 			double []sum = new double[dimension];
 			for(indexNode aIndexNode: listnode) {
 				double []sumd = updateSum(aIndexNode, dimension);
-				for(int i=0; i<dimension; i++)
+				for(int i = 0; i < dimension; i++)
 					sum[i] += sumd[i];
 			}
-			root.setSum(sum);
+			node.setSum(sum);
 			return sum;
 		}
 	}
@@ -191,24 +197,34 @@ public class indexAlgorithm<E> {
 	/*
 	 * the right index to use
 	 */
+
+	/**
+	 * build a ball-tree using raw dataMatrix
+	 * @param itemMatrix dataMatrix
+	 * @param dimension dimension of each data point
+	 * @param capacity capacity of leaf node
+	 * @param userID
+	 * @param userNumber
+	 * @return root node of the ball-tree (indexNode type)
+	 */
 	public indexNode buildBalltree2(double[][] itemMatrix, int dimension, int capacity, int userID[], Map<Integer, Double> userNumber) {// too slow	
-	//	System.out.println("Building Ball-tree using Matrix...");
-		long startTime1 = System.nanoTime();
-		int deepth = (int) (Math.log(itemMatrix.length)/Math.log(2));	//the deepth is computed based on binary tree
-		indexNode rootKmeans = BallTreeMatrix.create(itemMatrix, capacity, deepth);	//we should not set the deepth too deep
+		//	System.out.println("Building Ball-tree using Matrix...");
+		// long startTime1 = System.nanoTime();
+		int depth = (int) (Math.log(itemMatrix.length)/Math.log(2));				// the depth is computed based on binary tree
+		indexNode rootKmeans = BallTreeMatrix.create(itemMatrix, capacity, depth);	//we should not set the depth too deep
 		if(userNumber==null)
-			updateSum(rootKmeans, dimension);
+			updateSum(rootKmeans, dimension);	// set SUM of each index node
 		else {
-			updateSumFair(rootKmeans, dimension, userID, userNumber, itemMatrix);// update sum fair for useage.
+			updateSumFair(rootKmeans, dimension, userID, userNumber, itemMatrix);// update sum fair for usage.
 			double a = updateCoveredPointsFair(rootKmeans, dimension, userID, userNumber, itemMatrix);
 		}
-		updateNodeId(rootKmeans, 1);
+		updateNodeId(rootKmeans, 1);		// set node id for each index node
 		calculateMaxBoundBox(rootKmeans, dimension, itemMatrix);
 		calculateMinBoundBox(rootKmeans, dimension, itemMatrix);
-		long endtime = System.nanoTime();
-	//	System.out.println("index time cost: "+(endtime-startTime1)/1000000000.0);
-	//	System.out.println("the count of Ball-tree using Matrix is " + 
-	//		rootKmeans.getTotalCoveredPoints()+", the radius is "+rootKmeans.getRadius());
+		// long endtime = System.nanoTime();
+		//	System.out.println("index time cost: "+(endtime-startTime1)/1000000000.0);
+		//	System.out.println("the count of Ball-tree using Matrix is " +
+		//		rootKmeans.getTotalCoveredPoints()+", the radius is "+rootKmeans.getRadius());
 		return rootKmeans;
 	}
 	
@@ -362,6 +378,15 @@ public class indexAlgorithm<E> {
 	}
 	
 	// search two nearest neighbors, minDistnearestID stores two points
+
+	/**
+	 * Searching for two nearest neighbor in given ball-tree
+	 * @param point the coordinates of given points
+	 * @param root the root node of given ball-tree
+	 * @param dimension dimension of data point
+	 * @param itemMatrix raw data matrix of given ball-tree
+	 * @param minDistnearestID with the length of 4: 0-second minimum distance, 1-second nearest id, 2-minimum distance, 3-nearest id
+	 */
 	public void TwoNearestNeighborSearchBall(double point[], indexNode root, int dimension, 
 			double[][] itemMatrix, double []minDistnearestID) {
 		if (root.isLeaf()) {
@@ -871,23 +896,31 @@ public class indexAlgorithm<E> {
 	/*
 	 * calculating the bounding box of each node, for bounding box 
 	 */
+
+	/**
+	 * calculate the max bound box for each node
+	 * @param root the root node of the index tree
+	 * @param dimension dimension of each data point
+	 * @param dataMatrix raw data matrix
+	 * @return
+	 */
 	public double[] calculateMaxBoundBox(indexNode root, int dimension, double[][] dataMatrix) {
 		root.mbrmax = new double[dimension];
-		for(int i=0; i<dimension; i++) {
+		for(int i = 0; i < dimension; i++) {
 			root.mbrmax[i] = Double.MIN_VALUE;
 		}
 		if(root.isLeaf()) {
 			for(int pointid: root.getpointIdList()) {
-				for(int i=0; i<dimension; i++) {
-					if(dataMatrix[pointid-1][i]>root.mbrmax[i])
-						root.mbrmax[i] = dataMatrix[pointid-1][i];
+				for(int i = 0; i < dimension; i++) {
+					if(dataMatrix[pointid - 1][i] > root.mbrmax[i])
+						root.mbrmax[i] = dataMatrix[pointid - 1][i];
 				}
 			}
 		}else {
 			for(indexNode child: root.getNodelist()) {
 				double []childmax = calculateMaxBoundBox(child, dimension, dataMatrix);
-				for(int i=0; i<dimension; i++) {
-					if(childmax[i]>root.mbrmax[i])
+				for(int i = 0; i < dimension; i++) {
+					if(childmax[i] > root.mbrmax[i])
 						root.mbrmax[i] = childmax[i];
 				}
 			}

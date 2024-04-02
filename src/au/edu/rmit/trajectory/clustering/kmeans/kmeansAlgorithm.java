@@ -8,15 +8,12 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.math.MathContext;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.*;
 
 import au.edu.rmit.AutoIS;
 import au.edu.rmit.HyperPoint;
-import au.edu.rmit.IndexNode;
-import edu.wlu.cs.levy.cg.KDTree;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -32,16 +29,16 @@ import edu.wlu.cs.levy.cg.KeySizeException;
 @SuppressWarnings("restriction")
 public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	protected ArrayList<cluster> CENTERSEuc; // it stores the k clusters
-	double [][]dataMatrix;//|D|*dimension, we use array
+	double [][]dataMatrix;		// |D|*dimension, we use array
 
-	double [][]centroidsData; //k*dimension, store the centorid, this can be changed as cache for optimization,
+	double [][]centroidsData;	// k * dimension, store the coordinates of all centroids. this can be changed as cache for optimization,
 
-	double [][]allBounds;//|D|*(2+k) or |D|*(2+b) or |D|*2, store bounds for every point.
+	double [][]allBounds;		// |D|*(2+k) or |D|*(2+b) or |D|*2, store bounds for every point.
 
-	double []dataNorm;//|D|, l2 norm
-	double [][]dataDivvector;//|D|*b, blockvector
-	double []centroidNorm;//k, l2 norm
-	double [][]centoridDivvector; //k*b
+	double []dataNorm;			// |D|, l2 norm
+	double [][]dataDivvector;	// |D|*b, blockvector
+	double []centroidNorm;		// k, l2 norm
+	double [][]centoridDivvector;	// k*b
 
 	int userID[];// for fair clustering
 	Map<Integer, Double> userNumber;// for fair clustering
@@ -54,9 +51,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	int numberofComparison = 18;//all the comparison
 
 	String datafilename;
-	int dimension = 0;//the dimension of the Euclidean dataset
-	int dimension_start = 0;// the dimension start in a file
-	int dimension_end = 0;// the dimension end in file
+	int dimension = 0;			// the dimension of data point in dataset
+	int dimension_start = 0;	// the start dimension of a data point
+	int dimension_end = 0;		// the end dimension of a data point
 	String split = null;	/*use to split the colume of dataset*/
 
 	indexAlgorithm<Object> indexkmeans;
@@ -132,10 +129,10 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	double unitQuantization;
 
 	/* other configuration */
-	boolean usingUpperBound = false; // compute the distance to current cluster directly, which can prune more than using upper bound.
-	boolean kmeansplusplus = false;// true; //use the kmean++ initialization
-	boolean shownSum = true;//print the sse for checking whether the algorithm is right
-	int kThresholdPick = 1000; // to judge whether to compute the real distance with assigned cluster, tronto dataset should use have
+	boolean usingUpperBound = false;	// compute the distance to current cluster directly, which can prune more than using upper bound.
+	boolean kmeansplusplus = false;		// true; //use the kmean++ initialization
+	boolean shownSum = true;			//print the sse for checking whether the algorithm is right
+	int kThresholdPick = 1000;			// to judge whether to compute the real distance with assigned cluster, tronto dataset should use have
 
 	boolean pami20_flags[] = new boolean[k]; //indicate whether each cluster is stable
 	ArrayList<Boolean> PAMI20ClusterNeedScanningArrayList = new ArrayList<Boolean>();
@@ -156,19 +153,20 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 * set sign to test,
 	 */
 	void setSign(int sign[]) {		// {0,1,0,0,0,0,0,0,0,0,0,0,0};
-		lloyd = sign[0] == 1;
-		usingIndex = sign[1] == 1;
-		elkan = sign[2]==1?true:false;
-		Hamerly = sign[3]==1?true:false;
-		Drake12 = sign[4]==1?true:false;
-		annulus = sign[5]==1?true:false;
-		wsdm14 = sign[6]==1?true:false;
-		heap = sign[7]==1?true:false;
-		Yinyang = sign[8]==1?true:false;
-		Exponion = sign[9]==1?true:false;
-		blockVector = sign[10]==1?true:false;
-		reGroup = sign[11]==1?true:false;
-		sdm16 = sign[12]==1?true:false;
+		lloyd 		= sign[0] == 1;
+		usingIndex 	= sign[1] == 1;
+		elkan 		= sign[2] == 1;
+		Hamerly 	= sign[3] == 1;
+		Drake12 	= sign[4] == 1;
+		annulus 	= sign[5] == 1;
+		wsdm14 		= sign[6] == 1;
+		heap 		= sign[7] == 1;
+		Yinyang 	= sign[8] == 1;
+		Exponion 	= sign[9] == 1;
+		blockVector = sign[10] == 1;
+		reGroup 	= sign[11] == 1;
+		sdm16 		= sign[12] == 1;
+
 		if(lloyd)
 			assBoundSign = false;
 		else {
@@ -176,25 +174,23 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		}
 		if(Yinyang)
 			elkan = true;
-		if(Hamerly && elkan)//they cannot be true in the same time
+		if(Hamerly && elkan)	//they cannot be true in the same time
 			Hamerly = false;
-		if(dimension%2==1 || k<5) //we found it has to be an even for the blockvector algorithm, k cannot be
+		if(dimension % 2 == 1 || k < 5) //we found it has to be an even for the blockvector algorithm, k cannot be
 			blockVector = false;
 	}
 
-	/**
-	 * constructor
-	 * @param datapath paras
-	 */
-	public kmeansAlgorithm(String []datapath) {
-		super(datapath);
-		datafilename = datapath[4];							// paras[4] = "assment";
-		dimension_start = Integer.valueOf(datapath[5]);		// paras[5] = "0";		the dimensions
-		dimension_end = Integer.valueOf(datapath[6]);		// paras[6] = "1";
+	// constructor
+	public kmeansAlgorithm(String []paras) {
+		super(paras);
+		datafilename = paras[4];							// paras[4] = "assment";
+		dimension_start = Integer.parseInt(paras[5]);		// paras[5] = "0";		the first column
+		dimension_end = Integer.parseInt(paras[6]);			// paras[6] = "1";		the last column
 		maxIteration = MAXITE;
-		dimension = dimension_end - dimension_start + 1;
-		if (datapath.length > 7)
-			split = datapath[7];
+		dimension = dimension_end - dimension_start + 1;	// dimension of data point
+		if (paras.length > 7) {
+			split = paras[7];
+		}
 	}
 
 	public void setScale(int scale) {
@@ -224,8 +220,15 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		return dimension;
 	}
 
+	/**
+	 * load data into dataMatrix with the scale of 'number'
+	 * @param path path of dataset
+	 * @param number the upper limit on the amount of data loaded
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
 	public void loadDataEuc(String path, int number) throws FileNotFoundException, IOException {
-		dataMatrix = new double[trajectoryNumber][];	//store the data in this matrix.
+		dataMatrix = new double[trajectoryNumber][];	// store the data in this matrix.
 		int pointid = 1;
 	//	if(path.contains("fair")) {
 	//		runFairKmeans = true;
@@ -234,10 +237,10 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	//	userID = new int[trajectoryNumber];
 		try {
 			Scanner in = new Scanner(new BufferedReader(new FileReader(path)));
-			while (in.hasNextLine()) {// load the trajectory dataset, and we can efficiently find the trajectory by their id.
+			while (in.hasNextLine()) {	// load the trajectory dataset, and we can efficiently find the trajectory by their id.
 				String str = in.nextLine();
 				String strr = str.trim();
-				String[] abc = null;
+				String[] abc = null;	// store each data point into String[] abc
 				if(split!=null) {
 					if (!split.equals("a")) {
 						abc = strr.split(split);
@@ -259,25 +262,22 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					else if(strr.contains(" "))
 						abc = strr.split(" ");
 				}
-				if(abc.length-1 < dimension_end)// the dimension is not right
+				if(abc.length - 1 < dimension_end)// the dimension is not right
 					continue;
-				dataMatrix[pointid-1] = new double[dimension];
+				dataMatrix[pointid - 1] = new double[dimension];
 				double []point = new double[dimension];
-				boolean nan = false;
 				for(int i = dimension_start; i <= dimension_end; i++) {
 					if(!abc[i].equals("?")) {
-						dataMatrix[pointid-1][i-dimension_start] = Double.valueOf(abc[i]);
-						point[i-dimension_start] = Double.valueOf(abc[i]);
+						dataMatrix[pointid - 1][i - dimension_start] = Double.parseDouble(abc[i]);
+						point[i-dimension_start] = Double.parseDouble(abc[i]);
 					}
 					else {
-						dataMatrix[pointid-1][i-dimension_start] = 0;
+						dataMatrix[pointid - 1][i - dimension_start] = 0;
 						point[i-dimension_start] = 0;
 					}
 				}
-				if(nan==true)
-					continue;
 				pointid++;
-				if(pointid>number)
+				if(pointid > number)
 					break;
 			}
 			in.close();
@@ -288,9 +288,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	//	storeNYCLibSVM();
 	//
 		if(path.contains("fair")) {//for fair k-means
-			if(userNumber==null)
-				getUsersCheckInPointNumber("./fairKmeans/userNumber"+trajectoryNumber+".txt");
-			String filenString = "./dataset/processedDataset"+trajectoryNumber+".txt";
+			if(userNumber == null)
+				getUsersCheckInPointNumber("./fairKmeans/userNumber" + trajectoryNumber + ".txt");
+			String filenString = "./dataset/processedDataset" + trajectoryNumber + ".txt";
 			File tempFile = new File(filenString);
 			if (!tempFile.exists())
 				fairkmeans.FairProcessData(dataMatrix, userID, userNumber, dimension, filenString);
@@ -342,7 +342,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 */
 	double []accessPointById(int id){
 		dataReach++;
-		return dataMatrix[id-1];
+		return dataMatrix[id - 1];
 	}
 
 	/*
@@ -386,17 +386,22 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	}
 
 	// we optimize the above algorithm using knn and join,
-	public void computeInterCentoridEuckNN(int k, ArrayList<cluster> Center, double [][]clustData) {
+
+	/**
+	 * set interMinimumCentoridDis for each centroid
+	 * @param k number of centroids
+	 * @param clustData an array that stores coordinates of k centroids
+	 */
+	public void computeInterCentoridEuckNN(int k, double [][]clustData) {
 	//	AdvancedHausdorff.IncrementalDistance(point1xys, point2xys, k, X, Y, splitOption, fastMode, error, reverse, directDis, topkEarlyBreaking, nodelist, nodelist1);
 		indexAlgorithm<indexNode> algorithm = new indexAlgorithm<indexNode>();
 		double[] minDistnearestID = new double[4];
-		for(int i=0; i<k; i++) {
-			for(int j=0; j<4;j++)
-				minDistnearestID[j] = Double.MAX_VALUE;
-			if(iterationTimes>0)
-				minDistnearestID[0] = interMinimumCentoridDis[i] + group_drift[i] + maxDrift;// the bound for centroid index pruning
-			double []a = clustData[i];
-			algorithm.TwoNearestNeighborSearchBall(a, rootCentroids, dimension, clustData, minDistnearestID);
+		for(int i = 0; i < k; i++) {
+			Arrays.fill(minDistnearestID, Double.MAX_VALUE);
+			if(iterationTimes > 0)
+				minDistnearestID[0] = interMinimumCentoridDis[i] + group_drift[i] + maxDrift;		// the bound for centroid index pruning
+			double []centroid = clustData[i];
+			algorithm.TwoNearestNeighborSearchBall(centroid, rootCentroids, dimension, clustData, minDistnearestID);
 			interMinimumCentoridDis[i] = minDistnearestID[0];
 		}
 	}
@@ -426,17 +431,17 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 */
 	public void initializeClustersRandom(int k){
 		CENTERSEuc = new ArrayList<>();
-		int unit= trajectoryNumber/k;
-		System.out.println(unit+ " "+ k+" "+trajectoryNumber);
-		if(centroids==null) {//if there is no given centroids
+		int unit = trajectoryNumber / k;
+		System.out.println(unit + " " + k +" " + trajectoryNumber);
+		if(centroids == null) {		//if there is no given centroids
 			Random rand = new Random();
-			for(int t=0; t<k; t++) {
+			for(int t = 0; t < k; t++) {
 				cluster cl = null;
 				int  n = rand.nextInt(trajectoryNumber)+1;
-				n = t+1;// using same centroids every time.
+				n = t + 1;// using same centroids every time.
 				double[] cluster = accessPointById(n);
 				if(usingIndex) {// if there is an index
-					if(t==k-1) {
+					if(t == k - 1) {
 						if(pckmeanspointboundRecursive)
 							cl = new cluster(cluster, dimension);
 						else
@@ -454,25 +459,25 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				CENTERSEuc.add(cl);
 			}
 		}else {
-			for(int t=0; t<k; t++) {
-				int  n = centroids[t];
-				double[] cluster = accessPointById(n);
+			for(int i = 0; i < k; i++) {
+				int  centroidId = centroids[i];
+				double[] centroid = accessPointById(centroidId);		// 1.put centroid into point id set firstly
 				cluster cl = null;
-				if(usingIndex) {// if there is an index
-					if(t==0) {
+				if(usingIndex) {	// if there is an index
+					if(i == 0) {
 						if(pckmeanspointboundRecursive)
-							cl = new cluster(cluster, dimension);
+							cl = new cluster(centroid, dimension);
 						else
-							cl = new cluster(cluster, root, dimension);//assign the root node to the first cluster
+							cl = new cluster(centroid, root, dimension);		//assign the root node to the first cluster
 					}
 					else {
-						cl = new cluster(cluster, dimension);
+						cl = new cluster(centroid, dimension);
 					}
 				}else {
-					int end =(t+1)*unit;
-					if(t == k-1)
+					int end = (i + 1) * unit;
+					if(i == k - 1)
 						end = trajectoryNumber;
-					cl = new cluster(cluster, n, t*unit, end, dimension, dataMatrix);//no index
+					cl = new cluster(centroid, centroidId, i * unit, end, dimension, dataMatrix);	//no index
 				}
 				CENTERSEuc.add(cl);
 			}
@@ -521,13 +526,16 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		System.out.println("total initialized points: "+num);
 	}
 
+
 	/**
-	 * using the algorithms of k-means++ published in soda 2007,
-	 *
-	 * it will cost much time
+	 * using the algorithms of k-means++ published in soda 2007 (it will cost much time)
+	 * @param dimen dimension of each data point
+	 * @param k number of centroid we set (K-means)
+	 * @param number scale of data points
+	 * @return
 	 */
 	private int[] kmeanplusplus(int dimen, int k, int number) {
-		double[][] centroidsdata = new double[k][dimen];
+		double[][] centroidsdata = new double[k][dimen];		// to store all centroids
 		double[] distToClosestCentroid = new double[number];
 		double[] weightedDistribution = new double[number]; // cumulative sum of squared distances
 		int centoridid[] = new int[k];
@@ -677,8 +685,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		return lowerboud;
 	}
 
-	/*
-	 * store into array, or into cache.
+	/**
+	 * set centroidsData, which stores the coordinates of all centroids
 	 */
 	public void storeCentroid() {
 		for (int j = 0; j < k; j++) {// combine the inverted index for pruning
@@ -694,14 +702,14 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 * regroup idea, to run regroup again
 	 */
 	void regroup(int groupNumber) throws IOException {
-		int roundRegroup = 5;//regroup (ICAISC'17), every 5 iterations, we regroup
-		if(assBoundSign && reGroup && (iterationTimes+1)%roundRegroup == 0) {
-			for(int i=0; i<trajectoryNumber; i++) {// reset all lower bounds to be zero, only remain two global bounds
+		int roundRegroup = 5;	// regroup (ICAISC'17), every 5 iterations, we regroup
+		if(assBoundSign && reGroup && (iterationTimes + 1) % roundRegroup == 0) {
+			for(int i = 0; i < trajectoryNumber; i++) {	// reset all lower bounds to be zero, only remain two global bounds
 				if(allBounds[i] !=null)
-					for(int j=0; j<groupNumber; j++)
+					for(int j = 0; j < groupNumber; j++)
 						allBounds[i][j+2] = 0;
 			}
-			if(root!=null)
+			if(root != null)
 				setBoundsforRegrouping(root, groupNumber); //reset the bound in the node for next test
 			groupInitialClusters(groupNumber, k);
 		}
@@ -894,12 +902,13 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	public void assignmentBounds(int k, int groupNumber) throws IOException {
 		numeMovedTrajectories= 0;
 		long start = System.nanoTime();
-		Map<Integer, ArrayList<Integer>> idxNeedsIn = new HashMap<>();//it stores all the idxs of trajectories that move in
+		Map<Integer, ArrayList<Integer>> idxNeedsIn = new HashMap<>();		//it stores all the idxs of trajectories that move in
 		Map<Integer, ArrayList<Integer>> idxNeedsOut = new HashMap<>();
 		Map<Integer, ArrayList<indexNode>> nodeNeedsIn = new HashMap<>();
-		storeCentroid();//read from every cluster
-		// pami20 compute radius here, later
-		if(pami20){// and not stable
+		storeCentroid();		// read from every cluster
+
+		// 1.calculate centroid inter bound using different method
+		if(pami20){		// pami20 compute radius here, later		// and not stable
 			long startTime1 = System.nanoTime();
 			for(int ii=0; ii<k; ii++) {
 				if(pami20_flags[ii] == false) {
@@ -911,7 +920,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			long endtime = System.nanoTime();
 			timedistanceiter += (endtime-startTime1)/1000000000.0;
 		}
-		if(iterationTimes>0 && pami20) {
+		if(iterationTimes > 0 && pami20) {
 			double [][]previousCentroidDistance = new double[k][k];
 			for(int ii=0; ii<k; ii++) {
 				for(int jj=0; jj<k; jj++)
@@ -920,14 +929,16 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			pami20_compute_centroid_distance(k, centroidsData, previousCentroidDistance, center_drift, radiusPAMI20);
 		}else {
 			long startInter = System.nanoTime();
-			if(pckmeans)// use knn to accelerate the inner bound for every point
-				computeInterCentoridEuckNN(k, CENTERSEuc, centroidsData);// we use knn to accelerate
+			if(pckmeans)	// use knn to accelerate the inner bound for every point
+				computeInterCentoridEuckNN(k, centroidsData);	// for the case in dask-means, here we use knn to accelerate
 			else if(assBoundSign || pami20) // lloyd's algorithm will not create
 				computeInterCentoridEuc(k, CENTERSEuc, centroidsData);//compute the inter centroid bound martix
 			long endInter = System.nanoTime();
-			interBoundTime += (endInter-startInter)/1000000000.0;
+			interBoundTime += (endInter - startInter) / 1000000000.0;
 		}
-		regroup(groupNumber);
+
+		// 2.
+		regroup(groupNumber);		// for dask-means, we do nothing here
 		if(blockVector || annulus || sdm16)
 			computeNormDivisionCentroid(numberBlockVectors, 2);//compute the norm of centroids.
 		int boundNumber = groupNumber;//allBound's dimension: boundNumber+2
@@ -1419,8 +1430,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	protected void groupInitialClusters(int t, int k) throws IOException {
 		group = new HashMap<>();
 		centerGroup = new HashMap<>();
-		if(t==k) {// when k is small, we do not divide into too many groups
-			for(int i = 0;i<k; i++) {
+		if(t == k) {	// when k is small, we do not divide into too many groups
+			for(int i = 0; i < k; i++) {
 				ArrayList<Integer> a = new ArrayList<>();
 				a.add(i);
 				group.put(i, a);
@@ -1750,11 +1761,12 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		return list;
 	}
 
-	public int run_S_means(int k, Set<Integer> candidateset) throws IOException, KeyDuplicateException, KeySizeException {
+	// public int run_S_means(int k, Set<Integer> candidateset) throws IOException, KeyDuplicateException, KeySizeException {
+	public void run_S_means(int k) throws IOException, KeyDuplicateException, KeySizeException {
 		int groupNumber = k;
-		if(k>10 && Yinyang) {//used for the grouping
+		if(k > 10 && Yinyang) {	//used for the grouping
 			groupNumber = k/10;
-			if(groupNumber>10)
+			if(groupNumber > 10)
 				groupNumber = 10;
 		}
 		numComputeEuc = 0;
@@ -1763,7 +1775,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		dataReach = 0;
 		boundUpdate = 0;
 		timedistanceiter = 0;
-		groupInitialClusters(groupNumber, k); // Step 1: divide k centroids into t groups
+		groupInitialClusters(groupNumber, k);		// Step 1: divide k centroids into t groups
 		interMinimumCentoridDis = new double[k];
 		innerCentoridDis = new double[k][];
 		innerCentoridDisGroup = new double[k][];
@@ -1780,35 +1792,38 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			computeNormDivision(numberBlockVectors, 2);//compute the block vector norm
 		if(Drake12)
 			sortID = new int[trajectoryNumber][];
-		for (int i = 0; i < groupNumber; i++) {
-			group_drift[i] = Double.MAX_VALUE;// initialize as max in the begining
-		}
-		iterationTimes = 0;
-		double []iterationtime = new double[maxIteration+10];
-		double []centroidIndexingTime = new double[maxIteration+10];
-		double []iterationdis = new double[maxIteration+10];
-		double []iterationMean = new double[maxIteration+10];
-		double []iterationVariance = new double[maxIteration+10];
-		double []iterationIndexUpdates = new double[maxIteration+10];
-		binSortcenter = (int)((float)k/4);//this can be changed to a number, just like yinyang using 10
-		binSortcenter = 10;// just set for pick-means testing, comment it if not
+
+		Arrays.fill(group_drift, Double.MAX_VALUE); // initialize as max in the beginning
+		double []iterationtime = new double[maxIteration + 10];
+		double []centroidIndexingTime = new double[maxIteration + 10];
+		double []iterationdis = new double[maxIteration + 10];
+		double []iterationMean = new double[maxIteration + 10];
+		double []iterationVariance = new double[maxIteration + 10];
+		double []iterationIndexUpdates = new double[maxIteration + 10];
+		binSortcenter = (int) ((float) k / 4);		//this can be changed to a number, just like yinyang using 10
+		binSortcenter = 10;		// just set for pick-means testing, comment it if not
 		// recordHead("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-");
-		for(; iterationTimes <= maxIteration+10; iterationTimes++){
+
+		// 2.Main iteration loop
+		iterationTimes = 0;
+		for(; iterationTimes <= maxIteration + 10; iterationTimes++){
 			long startTime1 = System.nanoTime();
-			if(pckmeans)// we do not maintain any bound across the iterations
+			if(pckmeans)		// we do not maintain any bound across the iterations
 			{
 				root.setUpperBoundPick(Double.MAX_VALUE);
 			}
 			if(lloyd || Hamerly || Yinyang || usingIndex || elkan || annulus || Exponion || blockVector || reGroup || sdm16) {
-				assignmentBounds(k, groupNumber); // more choice on here
+				assignmentBounds(k, groupNumber); // more choice here
 			}
 			long endtime = System.nanoTime();
-			assigntime[counter] += (endtime-startTime1)/1000000000.0;
+			assigntime[counter] += (endtime - startTime1) / 1000000000.0;
+
+
 			long startTime = System.nanoTime();
-			for(int i=0; i<groupNumber; i++) {
-				group_drift[i] = 0;// initialize as min
-			}
-			//double drfitSum = 0;
+			Arrays.fill(group_drift, 0);
+
+			/*
+						//double drfitSum = 0;
 			//for(int i=0; i<k; i++) {
 			//	double drfit = 0;
 			//	if(assBoundSign) {//we use the incremental for bounds only.
@@ -1829,7 +1844,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			//	if(maxDrift < drfit)
 			//		maxDrift = drfit;
 			//}
+			 */
 			double drfitSum = 0;
+			/*
 			//System.out.println("kd begin"+"\n");
 			//String address = "dataset/Chicago_pickup_20m_clean1.csv";
 			//HyperPoint[] sample = ReadData(address,100000);
@@ -1841,8 +1858,10 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			//kd.ConstructionAutoIS(sample);
 
 			//System.out.println("kd end"+"\n");
-			for(int i=0;i<k;i++){
+			 */
+			for (int i = 0; i < k; i++){
 				double[] eachCenter = CENTERSEuc.get(i).extractMeans();
+				/*
 				//double[] newcenter = new double[dimension];
 				//for(int j = 0;j<eachCenter.length;j++){
 				//	System.out.println(eachCenter[j]+" ");
@@ -1851,8 +1870,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				//double[] minDistnearestID = new double[4];
                 //HyperPoint p = new HyperPoint(eachCenter);
                 //HyperPoint p1 = (HyperPoint) kd.kNN(p,1).dequeue();
+				 */
 				boolean flag = false;
-				for(int j=0;j<dimension;j++){
+				for(int j = 0; j < dimension; j++){
 					if(eachCenter[j] == 0) flag = true;
 				}
 				if(!flag){
@@ -1875,8 +1895,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			}
 			if(assBoundSign && sdm16 && !lloyd) {
 				double[][] centroidsDataold = new double[k][dimension];
-				for(int i=0; i<k; i++)
-					for(int j=0; j<dimension; j++)
+				for(int i = 0; i < k; i++)
+					for(int j = 0; j < dimension; j++)
 						centroidsDataold[i][j] = centroidsData[i][j];
 				storeCentroid();
 				tighterDrift(centroidsDataold, centroidsData, maxdis);
@@ -1896,9 +1916,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				centroidIndexingTime[iterationTimes] = (endTime11-startTime11)/1000000000.0;
 			}
 
-			refinetime[counter] +=(endtime-startTime)/1000000000.0;
-			System.out.print("\niteration "+(iterationTimes+1)+", time cost: ");
-			System.out.printf("%.5f", (endtime-startTime1)/1000000000.0);
+			refinetime[counter] += (endtime - startTime) / 1000000000.0;
+			System.out.print("\niteration " + (iterationTimes + 1) + ", time cost: ");
+			System.out.printf("%.5f", (endtime - startTime1) / 1000000000.0);
 			System.out.println("s");
 			//driftSum == 0 || iterationTimes >= maxIteration||
 			if(drfitSum <= 0.1 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
@@ -1908,11 +1928,11 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				if(runFairKmeans && weightOption >=3 ) // finish the stage 2
 					break; // convergence
 				else {// this is for fair k-means, run for stage 2, we use current centroid
-					iterationtime = new double[maxIteration+10];
-					iterationdis = new double[maxIteration+10];
-					iterationMean = new double[maxIteration+10];
-					iterationVariance = new double[maxIteration+10];
-					iterationIndexUpdates = new double[maxIteration+10];
+					iterationtime = new double[maxIteration + 10];
+					iterationdis = new double[maxIteration + 10];
+					iterationMean = new double[maxIteration + 10];
+					iterationVariance = new double[maxIteration + 10];
+					iterationIndexUpdates = new double[maxIteration + 10];
 					if(weightOption==0)
 						distanceGrouping(fairgroupNumber);
 					//	weightOption = 0;
@@ -1973,7 +1993,6 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		distanceTime[counter] += timedistanceiter;// the time spend on distance computation
 		memoryUsage[counter] += getAllMemory(groupNumber, 2);
 		System.out.println("Used memory: "+memoryUsage[counter]);
-		return iterationTimes;
 	}
 
 	/*
@@ -2578,38 +2597,46 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		clearStatistics();
 	}
 
-	public void static_S_Kmeans(boolean index, boolean bound, boolean tkde02) throws IOException {
+	public void static_S_Kmeans(boolean index, boolean bound, boolean tkde02) throws IOException {	// static_S_Kmeans(true, false, true);
 		usingIndex = index;
 		interBoundTime = 0;
-		if(dataMatrix==null)// avoid importing the data every time
+
+		if(dataMatrix == null)	// avoid importing the data every time
 			loadDataEuc(datafile, trajectoryNumber);
+
 		if(usingIndex && root == null) {
 			root = runIndexbuildQueuePoint(0.01, 20, 10);//radius, capacity, and fanout, we
 		}
-		if(pckmeans) {//we build centorids for big k.
-			assigned = root.setAssignPICK((short)0, assigned);//set all as unassigned
-			assigned = new short[trajectoryNumber];
-			double centoridMatirx[][]= new double[k][dimension];
-			int counter = 0;
-			for(int cid: centroids) {
-				centoridMatirx[counter++] = dataMatrix[cid-1];
-			}
-			rootCentroids =  indexkmeans.buildBalltree2(centoridMatirx, dimension, capacity, userID, userNumber); // capacity
 
-			if( pckmeanspointbound) {// create to store bound to accelerate knn search
+		if(pckmeans) {		// build a ball-tree index for centroids
+			assigned = new short[trajectoryNumber];		// store which centroid the data point is assigned to
+
+			double centroidMatirx[][]= new double[k][dimension];
+			int counter = 0;
+			for(int cid : centroids) {
+				centroidMatirx[counter++] = dataMatrix[cid - 1];
+			}
+			rootCentroids = indexkmeans.buildBalltree2(centroidMatirx, dimension, capacity, userID, userNumber); // capacity
+
+			if(pckmeanspointbound) {		// create to store bound to accelerate knn search
 				quantilizedUpperBound = new double[trajectoryNumber];
-				for(int i=0; i<trajectoryNumber; i++) {
-					quantilizedUpperBound[i] = Double.MAX_VALUE;
-				}
+				Arrays.fill(quantilizedUpperBound, Double.MAX_VALUE);
 			}
 		}
-		initializeClustersRandom(k); 	 //randomly choose k, k-means++, or use index to accelerate
+
+		initializeClustersRandom(k); 	 // randomly choose k, k-means++, or use index to accelerate
 		assBoundSign = bound;
 		indexPAMI = tkde02;
-		Set<Integer> KeySet = new HashSet<>();
-		for(int i=1; i<=trajectoryNumber; i++) KeySet.add(i);
+
+		// long startTime = System.nanoTime();
+		// Set<Integer> KeySet = new HashSet<>();
+		// for(int i = 1; i <= trajectoryNumber; i++) KeySet.add(i);
+		// long endtime = System.nanoTime();
+		// System.out.println("KeySet costs: " + (endtime - startTime) / 1000000000.0);
+
 		try {
-			run_S_means(k, KeySet);
+			// run_S_means(k, KeySet);
+			run_S_means(k);
 		} catch (KeyDuplicateException e) {
 			throw new RuntimeException(e);
 		} catch (KeySizeException e) {
@@ -2684,21 +2711,27 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	/*
 	 * we can write centroids into files
 	 */
+
+	/**
+	 * initialize the centroid randomly or use K-means++ if (kmeansplusplus is true)
+	 * @param maximumk k: the number of centroid
+	 * @param group testTime
+	 */
 	void InitializeAllUnifiedCentroid(int maximumk, int group) {
 		allCentroids = new int[group][];
 		Random rand = new Random();
-		for(int i=0; i<group; i++) {
+		for(int i = 0; i < group; i++) {
 			if(kmeansplusplus) {
 				long startTime1 = System.nanoTime();
 				allCentroids[i] = kmeanplusplus(dimension, maximumk, trajectoryNumber);//use the SODA 07
 				long endtime = System.nanoTime();
-				System.out.println("kmeans++ costs: "+(endtime-startTime1)/1000000000.0);
+				System.out.println("kmeans++ costs: " + (endtime - startTime1) / 1000000000.0);
 			}else {
 				allCentroids[i] = new int[maximumk]; //it is initialized to use a same centroid set.
-				for(int j=0; j<maximumk; j++) {
-					allCentroids[i][j] = rand.nextInt(trajectoryNumber)+1;
+				for(int j = 0; j < maximumk; j++) {
+					allCentroids[i][j] = rand.nextInt(trajectoryNumber) + 1;
 					if(reuseCentroid)
-						allCentroids[i][j] = j+1;
+						allCentroids[i][j] = j + 1;
 				//	System.out.println(allCentroids[i][j]);
 				}
 			}
@@ -3356,15 +3389,25 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		//预测cost model
 	}
 
+	/**
+	 *
+	 * @param setK k: the number of cluster centroid
+	 * @param testTime times the experiment will be performed
+	 * @throws IOException
+	 * @throws KeySizeException
+	 * @throws KeyDuplicateException
+	 */
 	public void S_Means_experiments(int []setK, int testTime) throws IOException, KeySizeException, KeyDuplicateException {
 		//	plotData.runPlot("");
-		loadDataEuc(datafile, trajectoryNumber);	// load the data and create index
+		// load data and build indexes on data points
+		loadDataEuc(datafile, trajectoryNumber);	// load data into dataMatrix
 		indexkmeans = new indexAlgorithm<>();
-		indexNode rootHKT=null, rootMtree=null, rootBall=null, rootCover=null, rootkd = null;
+		indexNode rootHKT = null, rootMtree = null, rootBall = null, rootCover = null, rootkd = null;
 		if(runBalltreeOnly)
-			rootHKT = runIndexbuildQueuePoint(0, capacity, 10);//load the dataset and build one index for all testing methods
-        //String LOG_DIR = "./logs/pickmeans/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+capacity+"_index.log";
-		//PrintStream fileOut = new PrintStream(LOG_DIR);
+			rootHKT = runIndexbuildQueuePoint(0, capacity, 10);	// load the dataset and build one index for all testing methods
+
+		String LOG_DIR = String.format("./logs/pickmeans/%s_%d_%d_%d_index.log", datafilename, trajectoryNumber, dimension, capacity);
+		PrintStream fileOut = new PrintStream(LOG_DIR);
 		long startTime1 = System.nanoTime();
 		rootBall = indexkmeans.buildBalltree2(dataMatrix, dimension, capacity, userID, userNumber); // capacity
 		rootball_for_1nn = rootBall;
@@ -3372,17 +3415,18 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		indexingTime = (endtime-startTime1)/1000000000.0;
 
 		System.out.println(getNodesCount(rootHKT)+" "+ getNodesCount(rootBall) + " "+getNodesCount(rootMtree));
-		for(int i=0; i<numberofComparison; i++) {//only maintain the Lloyd's and Sequential as they will not be affected by the type of index
-			computations[i] = 0;
-			time[i] = 0;
-			assigntime[i] = 0;
-			refinetime[i] = 0;
-			dataAccess[i] = 0;
-			boundCompares[i] = 0;
-			memoryUsage[i] = 0;
-			distanceTime[i] = 0;
+		for(int i = 0; i < numberofComparison; i++) {//only maintain the Lloyd's and Sequential as they will not be affected by the type of index
+			computations[i]		= 0;
+			time[i] 			= 0;
+			assigntime[i] 		= 0;
+			refinetime[i] 		= 0;
+			dataAccess[i] 		= 0;
+			boundCompares[i] 	= 0;
+			memoryUsage[i] 		= 0;
+			distanceTime[i] 	= 0;
 		}
 		System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+
 		long starttime = System.nanoTime();
 		for(int kvalue: setK) {//test various k
 			k = kvalue;
@@ -3391,18 +3435,19 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			roots.add(new ImmutablePair<>(rootBall, "BallMetric"));
 			roots.add(new ImmutablePair<>(rootMtree, "Mtree"));
 			roots.add(new ImmutablePair<>(rootCover, "CoverTree"));
-			InitializeAllUnifiedCentroid(kvalue, testTime);//maximum k, time time		///////////////////////////////////////
+			InitializeAllUnifiedCentroid(kvalue, testTime);		//maximum k, time time		///////////////////////////////////////
 			boolean LloydandSeq = runIndexMethodOnly;
 			setGroupNumber(fairgroupNumber);
-			for(Pair<indexNode, String> newroot: roots) {
+			for(Pair<indexNode, String> newroot : roots) {
 				root = newroot.getLeft();
-				if(root==null)
+				if(root == null)
 					continue;
-				distanceToFather = new double[trajectoryNumber];//store the point distance
+				distanceToFather = new double[trajectoryNumber];	//store the point distance
 				userNumber = null;
 				runFairKmeans = false;
 				weightOption = 0;
 				computeFartherToChild(root);
+
 				String indexname = newroot.getRight();
 				if(!indexname.equals("HKT"))
 					nonkmeansTree = false;
@@ -3410,7 +3455,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				for (int testtime = 0; testtime < testTime; testtime++) {
 					counter = 0;
 					centroids = new int[k];
-					for(int i=0; i<k; i++)
+					for(int i = 0; i < k; i++)
 						centroids[i] = allCentroids[testtime][i];
 					if(!LloydandSeq) {
 						test_S_means();
@@ -3846,7 +3891,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		pckmeansbound = true;
 		pckmeanspointboundRecursive = true;
 		pckmeansUsinginterbound = true;
-		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};		// which means only use index
 		setSign(signBall2);		/////////////
 		//	skipMethods();
 		static_S_Kmeans(true, false, true);

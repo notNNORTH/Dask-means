@@ -24,6 +24,7 @@ import static java.lang.Math.sqrt;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 
 import au.edu.rmit.trajectory.clustering.kmeans.indexNode;
@@ -36,7 +37,7 @@ import au.edu.rmit.trajectory.clustering.kmeans.indexNode;
 public class BallTreeMatrix extends BinaryTree {
 
     private static final Random random = new Random();
-    static double weight[];// indicate the weight on each dimension, for normalization
+    static double weight[]; // indicate the weight on each dimension, for normalization
     
     public BallTreeMatrix(NodeBall root) {
         super(root);
@@ -44,8 +45,8 @@ public class BallTreeMatrix extends BinaryTree {
     
     public static void setWeight(int dimension, double []weightinput) {
     	weight = new double[dimension];
-		for(int i=0; i< dimension; i++)
-			if(weightinput==null)
+		for(int i = 0; i < dimension; i++)
+			if(weightinput == null)
 				weight[i] = 1.0;
 			else
 				weight[i] = weightinput[i];
@@ -56,14 +57,19 @@ public class BallTreeMatrix extends BinaryTree {
         return (Ball) super.getRoot();
     }
 
+    /**
+     * Given the dataMatrix, build a ball-tree and return the root node of the tree.
+     * After creating, [pivot, radius, node list(for internal), point id list & sum(for leaf)] are set.
+     * @param itemMatrix dataMatrix: a matrix storing all data points
+     * @param leafThreshold capacity of leaf node
+     * @param maxDepth the maximum depth of the tree
+     * @return the root node of the ball-tree
+     */
     public static indexNode create(double[][] itemMatrix, int leafThreshold, int maxDepth) {
-        int[] rows = new int[itemMatrix.length];
-        for (int row = 0; row < itemMatrix.length; row++) {
-            rows[row] = row;
-        }
+        int[] rows = IntStream.range(0, itemMatrix.length).toArray();
         Ball root = new Ball(rows, itemMatrix);
         indexNode rootKmeans = new indexNode(itemMatrix[0].length);
-        setWeight(itemMatrix[0].length, null);// set all as 1
+        setWeight(itemMatrix[0].length, null);  // set all as 1
         int depth = 0;
         if (rows.length > leafThreshold && depth < maxDepth) {
             createChildren(root, leafThreshold, depth + 1, maxDepth);
@@ -93,7 +99,7 @@ public class BallTreeMatrix extends BinaryTree {
         IntArrayList rightRows = new IntArrayList();
 
         splitItems(parent.getRows(), parent.getItemMatrix(), leftRows, rightRows);
-        parent.clearRows();
+        parent.clearRows();     // thus, only leaf node stores the ID set
 
         Ball leftChild = new Ball(leftRows.toIntArray(), parent.getItemMatrix());
         parent.setLeftChild(leftChild);
@@ -108,7 +114,13 @@ public class BallTreeMatrix extends BinaryTree {
         }
     }
 
-    // Divide all data points into two subsets , then store them in leftRows and rightRows
+    /**
+     * Divide all data points into two subsets , then store them into leftRows and rightRows
+     * @param rows ID set that contained by a ball(node)
+     * @param itemMatrix full dataMatrix
+     * @param leftRows ID set that contained by the ball's left child(node)
+     * @param rightRows ID set that contained by the ball's right child(node)
+     */
     protected static void splitItems(int[] rows, double[][] itemMatrix, IntArrayList leftRows, IntArrayList rightRows) {
         // pick random element
         double[] x = itemMatrix[rows[random.nextInt(rows.length)]];
@@ -156,7 +168,7 @@ public class BallTreeMatrix extends BinaryTree {
 
         private double[] center;
         private double radius;
-        private int[] rows;//it
+        private int[] rows;     // point id contained by the ball (be empty if it's not leaf)
         private final double[][] itemMatrix;
 
         public Ball(int[] rows, double[][] itemMatrix) {
@@ -182,14 +194,15 @@ public class BallTreeMatrix extends BinaryTree {
         }
 
         private void calculateCenter() {
-            center = new double[itemMatrix[0].length];
+            int dimension = itemMatrix[0].length;
+            center = new double[dimension];
 
             for (int row : rows) {
-                for (int i = 0; i < center.length; i++) {
+                for (int i = 0; i < dimension; i++) {
                     center[i] += itemMatrix[row][i];
                 }
             }
-            for (int i = 0; i < center.length; i++) {
+            for (int i = 0; i < dimension; i++) {
                 center[i] /= rows.length;
             }
         }
@@ -237,18 +250,18 @@ public class BallTreeMatrix extends BinaryTree {
         
         public int traverseConvert(indexNode rootKmeans, int dimension) {
     		rootKmeans.setRadius(radius);    		
-    		rootKmeans.setPivot(center);//  		
-    		if(rows != null){//for the leaf node
+    		rootKmeans.setPivot(center);
+    		if(rows != null){   // for the leaf node
     			Set<Integer> aIntegers = new HashSet<Integer>();
     			double []sumOfPoints = new double[dimension];
     			for(int id : rows) {
-    				aIntegers.add(id+1);// the pointid
-    				for(int i=0; i<dimension; i++)
+    				aIntegers.add(id + 1);    // the point id
+    				for(int i = 0; i < dimension; i++)
     					sumOfPoints[i] += itemMatrix[id][i];
     			}
-    			rootKmeans.setSum(sumOfPoints);
-    			rootKmeans.addPoint(aIntegers);		
-    			rootKmeans.setTotalCoveredPoints(aIntegers.size());
+    			rootKmeans.setSum(sumOfPoints);     // sum of all points
+    			rootKmeans.addPoint(aIntegers);		// point ID set
+    			rootKmeans.setTotalCoveredPoints(aIntegers.size()); // number of point it contains
     			return aIntegers.size();
     		}else {   			
     			int count = 0;
@@ -272,10 +285,10 @@ public class BallTreeMatrix extends BinaryTree {
     public static double distance2(double[] x, double[] y) {
         double d = 0.0;
         for (int i = 0; i < x.length; i++) {
-        	if(weight==null)//normal case
+        	if(weight == null)  //normal case
         		d += (x[i] - y[i]) * (x[i] - y[i]);
         	else
-        		d += (x[i] - y[i]) * (x[i] - y[i])*weight[i]*weight[i];
+        		d += (x[i] - y[i]) * (x[i] - y[i]) * weight[i] * weight[i];
         }
         return d;
     }

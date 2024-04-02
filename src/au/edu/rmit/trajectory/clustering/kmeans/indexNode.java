@@ -9,37 +9,37 @@ import au.edu.rmit.trajectory.clustering.kpaths.Util;
 
 
 // this class will build the index based on the 
-public class indexNode {	
-	protected Set<Integer> pointIdList; // the leaf node, the index node is a leaf node when this is not empty, we can 
-	protected Set<indexNode> nodeList; // the internal node	
-	protected Set<Integer> nodeIDList;//check whether the root is empty before use, for seralization
-	protected double pivot[];// the mean value
-	protected double radius;// the radius from the pivot to the furthest point
-	protected double distanceToFarther;//this is the distance to father for bound estimation
-	protected double []sum;// the sum of all the points inside this node.
-	double[] bounds;//the lower bound distance to the non nearest neighbor;
-	private int totalCoveredPoints;
+public class indexNode {
+	protected Set<indexNode> nodeList;	// internal: the internal nodes (or children of this node)
+	protected Set<Integer> nodeIDList;	// internal: check whether the root is empty before use, for serialization
+	protected Set<Integer> pointIdList;	// leaf: the index node is a leaf node when this is not empty
+	protected double []sum;				// all: the sum of all the points inside this node.
+	double[] bounds;					// the lower bound distance to the non nearest neighbor;
+	protected double distanceToFarther;	// this is the distance to father for bound estimation
+	protected double pivot[];			// all: the mean value
+	protected double radius;			// all: the radius from the pivot to the furthest point
+	private int totalCoveredPoints;		// all: number of data points it covers
 	
 	double[][] matrixPivot;
 	double EMDRadius;
  	
 	//  used for pick-means
-	short assignedClusterID = 0;// it is set as 0 when not assigned, >0 is assigned in current iteration, <0 show the pervious assigned cluster
-	short newassign = 0; // used to store nearest
-	double lowerbound = 0;// set as the bound to second nearest neighbor
-	double upperbound = Double.MAX_VALUE;// set as the bound to nearest centroid, assigned if upperbound < lowerbound
-	short counterPruned = 0;// initialized as zero
+	short assignedClusterID = 0;	// it is set as 0 when not assigned, >0 is assigned in current iteration, <0 show the previous assigned cluster
+	short newassign = 0;			// used to store nearest
+	double lowerbound = 0;			// set as the bound to second-nearest neighbor
+	double upperbound = Double.MAX_VALUE;	// set as the bound to nearest centroid, assigned if upperbound < lowerbound
+	short counterPruned = 0;		// initialized as zero
 	
 	
 	// used for dataset search
-	int rootToDataset = 0;// indicate the dataset id, for dataset search use only
+	int rootToDataset = 0;			// indicate the dataset id, for dataset search use only
 	double mindis=Double.MAX_VALUE;
-	int counter = 0; //number of nodes in the queue
-	int nodeid = 0;//for node identification
-	double []mbrmax;//MBR bounding box
+	int counter = 0;	// number of nodes in the queue
+	int nodeid = 0;		// for node identification
+	double []mbrmax;	// MBR bounding box
 	double []mbrmin;
-	int []signautre; // store the signature
-	int maxCoverpoints;// store the maximum number of point under it, for data lake index only, this for pruning
+	int []signautre;	// store the signature
+	int maxCoverpoints;	// store the maximum number of point under it, for data lake index only, this for pruning
 	
 	// used for fair clustering 
 	private double totalCoveredPointsFair = 0; //calculate the normalized 
@@ -827,13 +827,13 @@ public class indexNode {
 	
 	public short[] setAssignPICK(short nearest, short newassign[]) {
 		this.assignedClusterID = nearest;
-		if(nodeList!=null) {
+		if(nodeList != null) {		// for internal node
 			for(indexNode child: nodeList) {
 				child.setAssignPICK(nearest, newassign);
 			}
 		}else {
-			if(newassign!=null)
-				for(int pointid: pointIdList)
+			if(newassign != null)
+				for(int pointid : pointIdList)
 					newassign[pointid-1] = nearest;
 		}
 		return newassign;

@@ -13,7 +13,7 @@ import au.edu.rmit.trajectory.clustering.kpaths.Util;
 public class cluster{
 	protected Set<Integer> coveredPoints;
 	protected Set<indexNode> covertedNodes;
-	int dimension = 0;//the dimension of the Euclidean dataset
+	int dimension = 0;		//the dimension of the Euclidean dataset
 	protected double []finalCentroid;
 	protected double []sumTotal;//this records the sum
 	protected double sumdistance=0;
@@ -196,14 +196,14 @@ public class cluster{
 		heap = new PriorityQueue<kmeansHeap>();//this is for storing the bounds, Harmly
 	}
 	
-	public cluster(double[] cluster, int dimen) {
+	public cluster(double[] centroid, int dimen) {
 		dimension = dimen;
 		finalCentroid = new double[dimension];
 		sumTotal =  new double[dimension];
 		coveredPoints = new HashSet<>();
 		covertedNodes = new HashSet<>();
-		for(int i=0; i<dimen; i++) {
-			finalCentroid[i] = cluster[i];
+		for(int i = 0; i < dimen; i++) {
+			finalCentroid[i] = centroid[i];
 			sumTotal[i] = 0;
 		}
 		heap = new PriorityQueue<kmeansHeap>();//this is for storing the bounds, Harmly
