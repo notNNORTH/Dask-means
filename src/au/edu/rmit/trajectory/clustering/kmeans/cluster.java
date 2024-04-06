@@ -1,12 +1,6 @@
 package au.edu.rmit.trajectory.clustering.kmeans;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import au.edu.rmit.trajectory.clustering.kpaths.Util;
 
@@ -14,8 +8,8 @@ public class cluster{
 	protected Set<Integer> coveredPoints;
 	protected Set<indexNode> covertedNodes;
 	int dimension = 0;		//the dimension of the Euclidean dataset
-	protected double []finalCentroid;
-	protected double []sumTotal;//this records the sum
+	protected double []finalCentroid;	// centroid from previous iteration
+	protected double []sumTotal;	//this records the sum
 	protected double sumdistance=0;
 	protected boolean centerChanged;
 	PriorityQueue<kmeansHeap> heap;
@@ -243,15 +237,15 @@ public class cluster{
 	}
 
 
+	// get the centroid of all points in this cluster
 	double[] extractMeans() {
 		int numberPoints = coveredPoints.size();
 		for(indexNode aIndexNode: covertedNodes) {
 			numberPoints += aIndexNode.getTotalCoveredPoints();//all the points in the cluster
 		}
 		double []newfinalCentroid = new double[dimension];
-		for(int i=0; i<dimension; i++) {
-			newfinalCentroid[i] = 0;
-		}
+		Arrays.fill(newfinalCentroid, 0);
+
 		if(numberPoints != 0) {
 			for (int i = 0; i < dimension; i++) {
 				newfinalCentroid[i] = sumTotal[i] / numberPoints;// no need to access the data
@@ -274,10 +268,15 @@ public class cluster{
 			return 0;
 	}
 
+	/**
+	 * update the centroid to new one, and calculate the distance as drift
+	 * @param medoidcenter the coordinate of new centroid (it's the nearest point from the centroid we calculated before)
+	 * @return drift: distance from the centroid in previous iteration to new centroid
+	 */
 	double extractNewCentroidByMeansIncremental1(double[] medoidcenter) {
 		int numberPoints = coveredPoints.size();
 		for(indexNode aIndexNode: covertedNodes) {
-			numberPoints += aIndexNode.getTotalCoveredPoints();//all the points in the cluster
+			numberPoints += aIndexNode.getTotalCoveredPoints();	// all the points in the cluster
 		}
 		if(numberPoints != 0) {
 			double drift = Util.EuclideanDis(medoidcenter, finalCentroid, dimension);

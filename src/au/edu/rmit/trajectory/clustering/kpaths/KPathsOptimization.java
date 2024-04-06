@@ -30,8 +30,8 @@ public class KPathsOptimization<T> extends KPaths {
 	private Thread runingThread;//multi thread
 	private String threadName;
 	TrajectoryMtree centroidindex;//the tree used to group the centroid in the first
-	protected Map<Integer, Double> center_drift = null;
-	protected double[] group_drift = null;
+	protected Map<Integer, Double> center_drift = null;		// store each center's drift in one iteration
+	protected double[] group_drift = null;		// store the maximum drift of each group in one iteration
 	protected int []centroids = null;
 	protected int groupIteration = 1;// index building iteration to form small group
 	

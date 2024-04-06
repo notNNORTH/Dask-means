@@ -41,7 +41,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	double [][]centoridDivvector;	// k*b
 
 	int userID[];// for fair clustering
-	Map<Integer, Double> userNumber;// for fair clustering
+	Map<Integer, Double> userNumber;	// for fair clustering (group id -> weight)
 	boolean runFairKmeans = false;
 
 	double []distanceToFather; //|D|, for index-based methods
@@ -114,7 +114,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	int iterationTimes;
 	int MAXITE = 30;			// can be set as bigger number 10
 	int maxIteration = MAXITE;
-	double maxDrift = 0;
+	double maxDrift = 0;		// the maximum drift of all centroids in one iteration
 
 	double []maxdis;//k, for sdm'16 to store the maximum radius for each cluster.
 	double [][]tighterdrift;//k*k
@@ -146,7 +146,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 
 	int fairgroupNumber = 10;
 	int weightOption = 0; // what weight should be used
-	double [][]weightsArray;
+	double [][]weightsArray;	// (10 group id * 3) 0-the number of data points in each group; 1-
 
 	indexNode rootball_for_1nn;
 	/*
@@ -800,17 +800,36 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 
 	/*
 	 * use 1nn and 2nn to assign when centroid is big, we use a lightweight recursive approach to accelerate
+	 assignPCKmenasBoundRecursive(root.getPivot(), rootCentroids, centroidsData, true, root, 0, root.getRadius(), Double.MAX_VALUE, idxNeedsIn, idxNeedsOut, nodeNeedsIn);*/
+
+	/**
+	 * assign all nodes (or data points) to a cluster using our pruning mechanism
+	 * @param pivot the coordinates of (data points') ball-tree's root pivot
+	 * @param centroidRoot indexNode: the root node of centroid index ball-tree
+	 * @param centerMatrix the coordinates of all centroids
+	 * @param isNode to judge whether it's a node or not (data point)
+	 * @param node indexNode: the root node of data points' ball-tree
+	 * @param idx if it's a data point, idx is the point id
+	 * @param radius the radius of data points' ball-tree
+	 * @param knnbound ?
+	 * @param idxNeedsIn ?
+	 * @param idxNeedsOut ?
+	 * @param nodeNeedsIn ?
+	 * @return
 	 */
 	double[] assignPCKmenasBoundRecursive(double pivot[], indexNode centroidRoot, double centerMatrix[][], boolean isNode,
 			indexNode node, int idx, double radius, double knnbound, Map<Integer, ArrayList<Integer>> idxNeedsIn,
 			Map<Integer, ArrayList<Integer>> idxNeedsOut, Map<Integer, ArrayList<indexNode>> nodeNeedsIn) {
 		double[] minDistnearestID;
+
 		if(isNode) {
 			minDistnearestID = new double[4];
-			int assignedCluster = node.getAssignedCluster();//get the assigned cluster
-			if(assignedCluster != 0) {//compute the distance to assigned cluster
+			int assignedCluster = node.getAssignedCluster();	// get the assigned cluster
+
+			// if the node has been assigned to a cluster, compute the distance from the node to assigned cluster
+			if(assignedCluster != 0) {
 				minDistnearestID[3] = (double)assignedCluster;
-				if(iterationTimes<=0 || k <= kThresholdPick || assignedCluster<=0) {// here we use the drift when k is relatively small
+				if(iterationTimes<=0 || k <= kThresholdPick || assignedCluster<=0) {	// here we use the drift when k is relatively small
 					minDistnearestID[2] = knnbound; // + group_drift[assignedCluster-1];// the drift bound
 				}else {
 					numComputeEuc++;
@@ -818,14 +837,16 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				}
 				if(pckmeansUsinginterbound && minDistnearestID[2] + radius < interMinimumCentoridDis[assignedCluster-1]/2) {// pruned directly
 					prunenode++;
-					CENTERSEuc.get((int)minDistnearestID[3]-1).addNode(node);
+					CENTERSEuc.get((int)minDistnearestID[3] - 1).addNode(node);
 					return minDistnearestID;
  				}
-				minDistnearestID[0] = minDistnearestID[2] + interMinimumCentoridDis[assignedCluster-1];// for the bound on second nearest neighbor
-			}else {
-				for(int i=0; i<4; i++)
-					minDistnearestID[i] = Double.MAX_VALUE; // initilaized it as the bound
+				minDistnearestID[0] = minDistnearestID[2] + interMinimumCentoridDis[assignedCluster-1];// for the bound on second-nearest neighbor
 			}
+			else {
+				for(int i = 0; i < 4; i++)
+					minDistnearestID[i] = Double.MAX_VALUE; // initialized it as the bound
+			}
+
 			if(knnbound < minDistnearestID[0])
 				minDistnearestID[0] = knnbound;// get the bound from father node
 			// initialized the two nearest points to search
@@ -840,36 +861,42 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				node.unAssignPICK();//put as unassigned
 				lightweight(minDistnearestID, radius, pivot, centroidRoot, centerMatrix, isNode, node, idx, idxNeedsIn, idxNeedsOut, nodeNeedsIn);// keep exploring child nodes
 			}
-		}else {
+		}
+
+		else {
 			minDistnearestID = new double[2];
 			int assignedCluster = 0;
-			if(assigned!=null && assigned[idx-1] != 0) {//check whether can assign directly, and get a tighter bound if not
+
+			if(assigned != null && assigned[idx - 1] != 0) {	// 2.1 if the point has been assigned to a cluster
 				assignedCluster = assigned[idx-1];
 				minDistnearestID[1] = (double)assignedCluster;
-				if(iterationTimes<=0 || k <= kThresholdPick || assignedCluster<=0)// here we use the drift when k is relatively small
-					minDistnearestID[0] = knnbound;// + group_drift[assignedCluster-1]; //the stored drift bound
+				if(iterationTimes<=0 || k <= kThresholdPick || assignedCluster<=0)		// here we use the drift when k is relatively small
+					minDistnearestID[0] = knnbound;// + group_drift[assignedCluster-1]; // the stored drift bound
 				else {
 					numComputeEuc++;
 					minDistnearestID[0] = Util.EuclideanDis(pivot, centerMatrix[assignedCluster-1], dimension);
 				}
+				// for the only one case where we have successfully pruned
 				if(pckmeansUsinginterbound && minDistnearestID[0] < interMinimumCentoridDis[assignedCluster-1]/2) {
 					CENTERSEuc.get((int)minDistnearestID[1]-1).addPointToCluster(idx, pivot);
 					return minDistnearestID;
 				}
 				if(knnbound < minDistnearestID[0])
 					minDistnearestID[0] = knnbound;
-			}else {
-				for(int i=0; i<2; i++)
+			}else {	// 2.2 if not
+				for(int i = 0; i < 2; i++)
 					minDistnearestID[i] = Double.MAX_VALUE;
 				if( iterationTimes==0 && knnbound < minDistnearestID[0])
 					minDistnearestID[0] = knnbound;
 			}
+
+			// and if we don't succeed in pruning, use knn to accelerate (where k = 1)
 			algorithm.NearestNeighborSearchBall(pivot, centroidRoot, dimension, centerMatrix, minDistnearestID);
 			if(iterationTimes==0 && minDistnearestID[1]>=k && assigned!=null) {
 				minDistnearestID[0] = Double.MAX_VALUE;
 				algorithm.NearestNeighborSearchBall(pivot, centroidRoot, dimension, centerMatrix, minDistnearestID);
 			}
-			assigned[idx-1] = (short)minDistnearestID[1];//assigned cluster
+			assigned[idx-1] = (short)minDistnearestID[1];	//assigned cluster
 			CENTERSEuc.get((int)minDistnearestID[1]-1).addPointToCluster(idx, pivot);
 		}
 		return minDistnearestID;
@@ -899,6 +926,11 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 
 	// assignment, all the optimizations are in one functions, Elkan, Hamerly, Yinyang, Newlying's bound will be used here
 	// if a node cannot be safely assigned, we need to remove it from current cluster and add the children into the queue
+	/**
+	 * here we do two things.
+	 * The first one is calculating centroid inter bound using different method.
+	 * And secondly, we assign all nodes (or data points) to a cluster using our pruning mechanism
+	 */
 	public void assignmentBounds(int k, int groupNumber) throws IOException {
 		numeMovedTrajectories= 0;
 		long start = System.nanoTime();
@@ -961,6 +993,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		//	}
 		//}
 
+		// 3.assign all nodes (or data points) to a cluster using our pruning mechanism
 		for (int group_i = 0; group_i < groupNumber && !pckmeanspointboundRecursive; group_i++) {//check each group
 			ArrayList<Integer> centers = group.get(group_i);//get the belonging
 			for (int centerID : centers){ //check each center in the group
@@ -1802,7 +1835,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		double []iterationIndexUpdates = new double[maxIteration + 10];
 		binSortcenter = (int) ((float) k / 4);		//this can be changed to a number, just like yinyang using 10
 		binSortcenter = 10;		// just set for pick-means testing, comment it if not
-		// recordHead("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-");
+		recordHead("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-");
 
 		// 2.Main iteration loop
 		iterationTimes = 0;
@@ -1813,6 +1846,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				root.setUpperBoundPick(Double.MAX_VALUE);
 			}
 			if(lloyd || Hamerly || Yinyang || usingIndex || elkan || annulus || Exponion || blockVector || reGroup || sdm16) {
+				// 2.1 calculate centroids' inter bounds and assign each point to its cluster
 				assignmentBounds(k, groupNumber); // more choice here
 			}
 			long endtime = System.nanoTime();
@@ -1860,7 +1894,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			//System.out.println("kd end"+"\n");
 			 */
 			for (int i = 0; i < k; i++){
-				double[] eachCenter = CENTERSEuc.get(i).extractMeans();
+				// 2.2 get the new centroid through calculating the average of all points in this cluster
+				double[] eachCenter = CENTERSEuc.get(i).extractMeans();		// store all centroids here
 				/*
 				//double[] newcenter = new double[dimension];
 				//for(int j = 0;j<eachCenter.length;j++){
@@ -1876,19 +1911,22 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					if(eachCenter[j] == 0) flag = true;
 				}
 				if(!flag){
+					// 2.3 get the nearest point from the new centroid we calculated before
 					double[] minDistnearestID = new double[2];
 					minDistnearestID[0] = Double.MAX_VALUE;
 					minDistnearestID[1] = Double.MAX_VALUE;
 					indexkmeans.NNSBall(eachCenter, rootball_for_1nn, dimension, dataMatrix, minDistnearestID);
-					double[] nearestpoint = dataMatrix[(int)(minDistnearestID[1]-1)];
+					double[] nearestpoint = dataMatrix[(int)(minDistnearestID[1]-1)];	// store the nearest data point to each centroid
 					//for(int j=0;j<dimension;j++){
 					//	System.out.println(nearestpoint[j]+" ");
 					//}
+
+					// 2.4 update the centroid to the nearest point we get, and calculate the centroid drift in previous iteration
 					double drfit = CENTERSEuc.get(i).extractNewCentroidByMeansIncremental1(nearestpoint);
 					drfitSum += drfit;
 					center_drift.put(i, drfit);
 					int groupid = centerGroup.get(i);
-					if(group_drift[groupid] < drfit) //update the group drift as maximum
+					if(group_drift[groupid] < drfit)	// update the group drift as maximum
 						group_drift[groupid] = drfit;
 					if(maxDrift < drfit) maxDrift = drfit;
 				}
@@ -1920,10 +1958,12 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			System.out.print("\niteration " + (iterationTimes + 1) + ", time cost: ");
 			System.out.printf("%.5f", (endtime - startTime1) / 1000000000.0);
 			System.out.println("s");
+
+			//
 			//driftSum == 0 || iterationTimes >= maxIteration||
 			if(drfitSum <= 0.1 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
 				runrecord.setIterationtimes(iterationTimes+1);
-				// recordTime("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-", iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
+				recordTime("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-", iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
 				//	maxIteration = iterationTimes-1;
 				if(runFairKmeans && weightOption >=3 ) // finish the stage 2
 					break; // convergence
@@ -1939,7 +1979,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					assignweights();
 					long starttime1 = System.nanoTime();
 					indexAlgorithm<Object> algorithmIndexAlgorithm = new indexAlgorithm<>();
-					algorithmIndexAlgorithm.updateSumFair(root, dimension, userID, userNumber, dataMatrix);// update sum fair for useage.
+					algorithmIndexAlgorithm.updateSumFair(root, dimension, userID, userNumber, dataMatrix);	// update sum fair for useage.
 					algorithmIndexAlgorithm.updateCoveredPointsFair(root, dimension, userID, userNumber, dataMatrix);
 					iterationTimes = 0;
 					iterationIndexUpdates[iterationTimes] = (System.nanoTime()-starttime1)/1000000000.0;
@@ -3028,6 +3068,10 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		System.out.println(variance(distanceArrayList, average.getAsDouble()));
 	}
 
+	/**
+	 * compute and print the average and Variance of all distance from each point to its centroid
+	 * @return average and Variance
+	 */
 	public ArrayList<Double> getDistanceDistribution() {
 		ArrayList<Double> distanceArrayList = new ArrayList<>();
 		Map<Integer, Double> pointDistance = new HashMap<Integer, Double>();
@@ -3047,28 +3091,32 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		OptionalDouble average = distanceArrayList.stream().mapToDouble(a -> a).average();
 		System.out.println(average.getAsDouble());
 		meanVariance.add(average.getAsDouble());
-		System.out.println(variance(distanceArrayList, average.getAsDouble()));
-		meanVariance.add(variance(distanceArrayList, average.getAsDouble()));
+		double Variance = variance(distanceArrayList, average.getAsDouble());
+		System.out.println(Variance);
+		meanVariance.add(Variance);
 		return meanVariance;
 	}
 	/*
 	 * grouping points based on their distance to assigned centroid in k-means, f-means
 	 * should be called once in the first round of k-means
+	 *
+	 * 1.set weightsArray here, which stores each group's weight
+	 * 2.set userID here, which assigns each point to a unique group
 	 */
 	public void distanceGrouping(int numberGroup) {
 		weightsArray = new double[numberGroup][3];
-		ArrayList<Double> distanceArrayList = new ArrayList<>();
-		Map<Integer, Double> pointDistance = new HashMap<Integer, Double>();
+		ArrayList<Double> distanceArrayList = new ArrayList<>();				// all the distance
+		Map<Integer, Double> pointDistance = new HashMap<Integer, Double>();	// distance from each point to its cluster's centroid
 		for(cluster clus: CENTERSEuc) {
-			Set<Integer> pointSet = clus.getcoveredPoints();
+			Set<Integer> pointSet = clus.getcoveredPoints();	// get all points' id in this cluster
 			for(indexNode aIndexNode: clus.getcoveredNodes()) {
 				Set<Integer> pointSet1 = aIndexNode.getAllpointIdList();
 				pointSet.addAll(pointSet1);
 			}
 			for (int pointid : pointSet) {// we also need to output the pointid
-					double tempDistance = Util.EuclideanDis(dataMatrix[pointid - 1], clus.getcentroid(), dimension);
-					pointDistance.put(pointid - 1, tempDistance);
-					distanceArrayList.add(tempDistance);
+				double tempDistance = Util.EuclideanDis(dataMatrix[pointid - 1], clus.getcentroid(), dimension);
+				pointDistance.put(pointid - 1, tempDistance);
+				distanceArrayList.add(tempDistance);
 			}
 		}
 		Collections.sort(distanceArrayList, Collections.reverseOrder());
@@ -3095,15 +3143,15 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				counter = 1;
 			}
 		}
-		if(counter1>=0) {
+		if(counter1 >= 0) {
 			weightsArray[counter1][0] = (double)counter;
 		}
-		for(int i=0; i<numberGroup; i++) {
-			weightsArray[i][1] = (double)(double)(numberGroup-i);
-			weightsArray[i][2] = Math.log(numberGroup-i+1)/Math.log(2);
+		for(int i = 0; i < numberGroup; i++) {
+			weightsArray[i][1] = (double)(double)(numberGroup - i);
+			weightsArray[i][2] = Math.log(numberGroup - i + 1)/Math.log(2);
 		}
-		for(int pointid: pointDistance.keySet()) {
-			int group = (int)(pointDistance.get(pointid)/gap); // the gap to divide the distribution
+		for(int pointid : pointDistance.keySet()) {
+			int group = (int)(pointDistance.get(pointid) / gap); // the gap to divide the distribution
 			if(group >= numberGroup)
 				group--;
 			userID[pointid] = group; // label each point with its belonging group

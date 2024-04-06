@@ -84,8 +84,17 @@ public class indexAlgorithm<E> {
 	/*
 	 * update the sum vector of index with fair constraint, for fair clustering
 	 */
+
+	/**
+	 * update the sun in one index node
+	 * @param root root node of ball-tree index
+	 * @param dimension dimension of data point
+	 * @param userID point id -> group id
+	 * @param userNumber group id -> weight
+	 * @param datamapDouble raw data Matrix
+	 */
 	public double[] updateSumFair(indexNode root, int dimension, int userID[], Map<Integer, Double> userNumber, double[][] datamapDouble) {
-		if(root.isLeaf()) {	
+		if (root.isLeaf()) {
 			Set<Integer> listnode = root.getpointIdList();
 			double[] sum = new double[dimension];
 			for (int aIndexNode : listnode) {
@@ -351,6 +360,14 @@ public class indexAlgorithm<E> {
 		}
 	}
 
+	/**
+	 * actually it's 1nn, searching for the nearest data point to the centroid we calculated
+	 * @param point the coordinate of target point (here is the centroid we calculated)
+	 * @param root the root node of data point ball-tree index
+	 * @param dimension dimension of data point
+	 * @param itemMatrix raw data matrix
+	 * @param minDistnearestID 0: minimum distance; 1: nearest point id
+	 */
 	public void NNSBall(double point[], indexNode root, int dimension,
 										  double[][] itemMatrix, double []minDistnearestID) {
 		if (root.isLeaf()) {
