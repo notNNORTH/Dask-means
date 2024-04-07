@@ -30,11 +30,18 @@ public class kmeansEfficiency {
 	//	scales = new int[] {1000, 5000, 10000, 50000, 100000, 500000, 1000000};
 		capacities = new int[] {30};
 	//	dimensions = new int[] {2};// test the parameters
+
+
+		kvalue = new int[] {1000};	//10, 100, 1000
+		dimensions = new int[] {2};
+		scales = new int[] {10000};
+		capacities = new int[] {30};
 		int testTime = 1;//test one time
+
 		String[] paras = new String[7];
 		paras[0] = "./dataset/Chicago_pickup_20m_clean1.csv";
 		paras[1] = "10";
-		paras[2] = "190000";
+		paras[2] = "100000";
 		paras[3] = "a";
 		paras[4] = "Chicago";
 		paras[5] = "0";
@@ -42,22 +49,22 @@ public class kmeansEfficiency {
 		kmeansAlgorithm<?> runkmeans = new kmeansAlgorithm<>(paras);
 		runkmeans.experiments(kvalue, testTime);// run the configuration that specified
 		
-		int dim = runkmeans.getDimension();
-		int scaleData = runkmeans.getTraNum();
+		// int dim = runkmeans.getDimension();
+		// int scaleData = runkmeans.getTraNum();
 	//	scales = new int[]{scaleData};
-		System.out.print(paras[4]);
-		for(int dimension: dimensions)
-		for(int capacity: capacities)
-		for(int scale: scales) {
+		// System.out.print(paras[4]);
+		// for(int dimension: dimensions)
+		// for(int capacity: capacities)
+		// for(int scale: scales) {
 			//set trajectory number 
-			if(dimension>dim || scale>scaleData)
-				continue;
-			runkmeans.setDimension(dimension);
-			runkmeans.setCapacity(capacity);
-			runkmeans.setScale(scale);
+		// 	if(dimension>dim || scale>scaleData)
+		// 		continue;
+		// 	runkmeans.setDimension(dimension);
+		// 	runkmeans.setCapacity(capacity);
+		// 	runkmeans.setScale(scale);
 		//	runkmeans.experiments(kvalue, testTime);
 		//	runkmeans.experiments_index(kvalue, testTime);//this is used for index test
-		}
+		// }
 		
 		
 	//	runkmeans.staticKmeans(false, true, false);//index sign, bound, scan whole tree again

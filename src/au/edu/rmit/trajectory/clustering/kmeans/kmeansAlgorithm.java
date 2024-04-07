@@ -152,7 +152,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	/*
 	 * set sign to test,
 	 */
-	void setSign(int sign[]) {		// {0,1,0,0,0,0,0,0,0,0,0,0,0};
+	void setSign(int sign[]) {
 		lloyd 		= sign[0] == 1;
 		usingIndex 	= sign[1] == 1;
 		elkan 		= sign[2] == 1;
@@ -1666,7 +1666,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			System.out.print("\niteration "+(iterationTimes+1)+", time cost: ");
 			System.out.printf("%.5f", (endtime-startTime1)/1000000000.0);
 			System.out.println("s");
-			if(drfitSum == 0 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
+
+			if(drfitSum <= 0.1 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
+			// if(drfitSum == 0 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
 				runrecord.setIterationtimes(iterationTimes+1);
 				recordTime("./logs/fmeans/"+datafilename+k+"-"+fairgroupNumber+"-", iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
 			//	maxIteration = iterationTimes-1;
@@ -1691,7 +1693,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					InitializeAllUnifiedCentroid(k, 0);
 					weightOption++;
 				//	weightOption += 3;
-					System.out.println("\n =======starting the f-means: "+weightOption);
+					System.out.println("\n =======starting the f-means: " + (weightOption - 1));
 				}
 			}
 			if(usingIndex && !indexPAMI && iterationTimes<2) {//scan from the rest
@@ -3808,17 +3810,17 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		pckmeans = false;
 		pckmeansbound = false;
 		pckmeanspointboundRecursive = false;
-		maxIteration = -1;//just run single time of iteration, to avoid to be too slow.
+		// maxIteration = -1;	//just run single time of iteration, to avoid to be too slow.
 		int sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
 		System.out.println("====Lloyd");			//2
 		setSign(sign);
-		skipMethods();
-	//	staticKmeans(false, false, false);// the lloyd's algorithm, the standard method
+		// skipMethods();
+		staticKmeans(false, false, false);	// the lloyd's algorithm, the standard method
 		memoryUsage[counter] = getAllMemory(0, 2);
 		System.out.println("memory cost:"+memoryUsage[counter]+",");
 		maxIteration = MAXITE;
 
-		System.out.println("Sequential-elkan");//3
+		System.out.println("====Sequential-elkan");//3
 		int signelkan[] = {0,0,1,0,0,0,0,0,0,0,0,0,0};
 		setSign(signelkan);
 		skipMethods();
@@ -3926,8 +3928,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		pckmeanspointboundRecursive = true;
 		pckmeansUsinginterbound = true;
 		setSign(signBall2);
-	//	skipMethods();
-		staticKmeans(true, false, true);
+		skipMethods();
+	// 	staticKmeans(true, false, true);
 		memoryUsage[counter] = getAllMemory(0, 2);
 		System.out.println("memory cost:"+memoryUsage[counter]+",");
 		pckmeans = false;
