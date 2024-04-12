@@ -4,10 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.base.Splitter;
 
@@ -94,6 +91,11 @@ public class indexAlgorithm<E> {
 	 * @param datamapDouble raw data Matrix
 	 */
 	public double[] updateSumFair(indexNode root, int dimension, int userID[], Map<Integer, Double> userNumber, double[][] datamapDouble) {
+		if (root == null) {
+			double[] sum = new double[dimension];
+			Arrays.fill(sum, 0.0);
+			return sum;
+		}
 		if (root.isLeaf()) {
 			Set<Integer> listnode = root.getpointIdList();
 			double[] sum = new double[dimension];
@@ -123,6 +125,9 @@ public class indexAlgorithm<E> {
 	 * update the number of points for fair clustering
 	 */
 	public double updateCoveredPointsFair(indexNode root, int dimension, int userID[], Map<Integer, Double> userNumber, double[][] datamapDouble) {
+		if (root == null) {
+			return 0.0;
+		}
 		if(root.isLeaf()) {	
 			Set<Integer> listnode = root.getpointIdList();
 			double coveredpints = 0;

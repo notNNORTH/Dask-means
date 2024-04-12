@@ -39,13 +39,13 @@ public class kmeansEfficiency {
 		int testTime = 1;//test one time
 
 		String[] paras = new String[7];
-		paras[0] = "./dataset/Chicago_pickup_20m_clean1.csv";
+		paras[0] = "./dataset/CloudPoint.csv";
 		paras[1] = "10";
-		paras[2] = "100000";
+		paras[2] = "1000000";
 		paras[3] = "a";
-		paras[4] = "Chicago";
+		paras[4] = "CloudPoint";
 		paras[5] = "0";
-		paras[6] = "1";
+		paras[6] = "2";
 		kmeansAlgorithm<?> runkmeans = new kmeansAlgorithm<>(paras);
 		runkmeans.experiments(kvalue, testTime);// run the configuration that specified
 		
