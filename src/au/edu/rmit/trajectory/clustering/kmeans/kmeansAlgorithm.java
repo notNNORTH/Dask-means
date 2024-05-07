@@ -4397,5 +4397,51 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 * tianyao to take part of this job once finishing the torch paper
 	 */
 
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////                                    created by lzp to test knn                                  ///////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	public void knn_experiments(int []setK) throws IOException, KeySizeException, KeyDuplicateException {
+		loadDataEuc(datafile, trajectoryNumber);	// load the data and create index
+		indexkmeans = new indexAlgorithm<>();
+
+		// build ball-tree index
+		long startTime1 = System.nanoTime();
+		root = indexkmeans.buildBalltree2(dataMatrix, dimension, capacity, userID, userNumber); // capacity
+		distanceToFather = new double[trajectoryNumber];	// store the point distance
+		computeFartherToChild(root);
+		long endtime = System.nanoTime();
+		indexingTime = (endtime-startTime1)/1000000000.0;
+		System.out.println(indexingTime);
+
+		// set source point
+		double[] point = dataMatrix[50];
+
+		FileWriter knnWriter = new FileWriter(String.format("./logs/knn/%s_%d_%d_knn.txt", datafilename, trajectoryNumber, dimension), true);
+
+		// test knn
+		for (int kvalue : setK) {//test various k
+			k = kvalue;
+			knnWriter.write("====    k = " + k + "\n");
+			System.out.println("====    k = " + k + "\n");
+
+			// classical knn
+			long start1 = System.nanoTime();
+			algorithm.Classical_knn(point, dimension, dataMatrix, k);
+			long end1 = System.nanoTime();
+			knnWriter.write("classical knn:" + (end1 - start1)/1000000000.0 + "\n");
+			System.out.println("classical knn:" + (end1 - start1)/1000000000.0 + "\n");
+
+			// ball-tree knn
+			long start2 = System.nanoTime();
+			indexAlgorithm.Distance[] stack = new indexAlgorithm.Distance[k];
+			algorithm.BallTree_knn(point, root, dimension, dataMatrix, stack,0);
+			long end2 = System.nanoTime();
+			knnWriter.write("ball-tree knn:" + (end2 - start2)/1000000000.0 + "\n");
+			System.out.println("ball-tree knn:" + (end2 - start2)/1000000000.0 + "\n");
+		}
+		knnWriter.close();
+	}
 	
 }

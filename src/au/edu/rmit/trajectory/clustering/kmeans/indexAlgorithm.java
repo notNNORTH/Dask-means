@@ -1015,5 +1015,104 @@ public class indexAlgorithm<E> {
 		
 		// 
 	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////                                    created by lzp to test knn                                  ///////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/**
+	 * classical knn algorithm
+	 *
+	 * @param point      the coordinates of given points
+	 * @param dimension  dimension of data point
+	 * @param itemMatrix raw data matrix of given ball-tree
+	 * @param k
+	 * @return
+	 */
+	public Distance[] Classical_knn(double[] point, int dimension, double[][] itemMatrix, int k) {
+		int n = itemMatrix.length;
+		int maxDistanceIndex = 0;
+		Distance[] distances = new Distance[k];
+
+		// Traverse all data points
+		for (int i = 0; i < n; i++) {
+			double dist = Hausdorff.EuclideanDis(itemMatrix[i], point, dimension);
+
+			if (i < k) {
+				distances[i] = new Distance(dist, i);
+
+				if (distances[i].distance >= distances[maxDistanceIndex].distance) {
+					maxDistanceIndex = i;
+				}
+			}
+			else if (dist <= distances[maxDistanceIndex].distance) {
+				distances[maxDistanceIndex].id = i;
+				distances[maxDistanceIndex].distance = dist;
+
+				for (int j = 0; j < k; j++) {
+					if (distances[j].distance > distances[maxDistanceIndex].distance) {
+						maxDistanceIndex = j;
+					}
+				}
+			}
+
+		}
+
+		return distances;
+	}
+
+	/**
+	 * Searching for two nearest neighbor in given ball-tree
+	 * @param point the coordinates of given points
+	 * @param root the root node of given ball-tree
+	 * @param dimension dimension of data point
+	 * @param itemMatrix raw data matrix of given ball-tree
+	 */
+	public void BallTree_knn(double point[], indexNode root, int dimension, double[][] itemMatrix, Distance[] stack, int maxIndex) {
+		if (root.isLeaf()) {
+			for (int id : root.getpointIdList()) {
+				double distance = Hausdorff.EuclideanDis(itemMatrix[id - 1], point, dimension);
+
+				if (distanceCompute < stack.length) {
+					stack[distanceCompute] = new Distance(distance, id);
+
+					if (stack[distanceCompute].distance >= stack[maxIndex].distance) {
+						maxIndex = distanceCompute;
+					}
+				}
+				else if (distance <= stack[maxIndex].distance) {
+					stack[maxIndex].id = id;
+					stack[maxIndex].distance = distance;
+
+					for (int j = 0; j < stack.length; j++) {
+						if (stack[j].distance > stack[maxIndex].distance) {
+							maxIndex = j;
+						}
+					}
+				}
+				distanceCompute++;
+
+			}
+		}else {
+			Set<indexNode> listnode = root.getNodelist();
+			for(indexNode aIndexNode: listnode) {
+				double distance = Hausdorff.EuclideanDis(aIndexNode.getPivot(), point, dimension);
+				if(stack[maxIndex] == null || stack[maxIndex].distance > (distance - aIndexNode.getRadius())) {
+					BallTree_knn(point, aIndexNode, dimension, itemMatrix, stack, maxIndex);
+				}
+			}
+		}
+	}
+
+
+
+	public static class Distance {
+		double distance;
+		int id;
+
+		Distance(double distance, int label) {
+			this.distance = distance;
+			this.id = label;
+		}
+	}
 	
 }
