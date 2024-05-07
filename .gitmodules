@@ -1,3 +1,0 @@
-[submodule "elki"]
-	path = elki
-	url = git@github.com:elki-project/elki.git
