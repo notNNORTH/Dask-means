@@ -36,13 +36,13 @@ import au.edu.rmit.trajectory.clustering.kmeans.indexNode;
  */
 public class BallTreeMatrix extends BinaryTree {
 
-    private static final Random random = new Random();
+    public static final Random random = new Random();
     static double weight[]; // indicate the weight on each dimension, for normalization
     
     public BallTreeMatrix(NodeBall root) {
         super(root);
     }
-    
+    /////////////////////////////////////////////////////////////////////////////
     public static void setWeight(int dimension, double []weightinput) {
     	weight = new double[dimension];
 		for(int i = 0; i < dimension; i++)
@@ -84,8 +84,8 @@ public class BallTreeMatrix extends BinaryTree {
             rows[row] = row;
         }
         Ball root = new Ball(rows, itemMatrix);
-        indexNode rootKmeans = new indexNode(dimension);
-        setWeight(dimension, weightinput);
+        indexNode rootKmeans = new indexNode(itemMatrix[0].length);
+        setWeight(itemMatrix[0].length, weightinput);
         int depth = 0;
         if (rows.length > leafThreshold && depth < maxDepth) {
             createChildren(root, leafThreshold, depth + 1, maxDepth);
@@ -288,7 +288,7 @@ public class BallTreeMatrix extends BinaryTree {
         	if(weight == null)  //normal case
         		d += (x[i] - y[i]) * (x[i] - y[i]);
         	else
-        		d += (x[i] - y[i]) * (x[i] - y[i]) * weight[i] * weight[i];
+        		d += (x[i] - y[i]) * (x[i] - y[i]);// * weight[i] * weight[i];
         }
         return d;
     }

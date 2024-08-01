@@ -15,6 +15,8 @@ import au.edu.rmit.trajectory.clustering.kpaths.Util;
 import edu.wlu.cs.levy.cg.KeyDuplicateException;
 import edu.wlu.cs.levy.cg.KeySizeException;
 
+import static es.saulvargas.balltrees.BallTreeMatrix.random;
+
 
 /*
  * ball-tree, M-tree, and Hierarchical k-means tree can used be extended to answer k-means
@@ -133,6 +135,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	double indexingTime = 0;
 	double interBoundTime = 0;
 	boolean early_terminating;
+
+	int ballNode = 0;	// amount of ball-tree node
 
 	boolean reuseCentroid = false; // using specified centroid in various runnings
 	indexAlgorithm<indexNode> algorithm = new indexAlgorithm<indexNode>();
@@ -926,6 +930,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 * And secondly, we assign all nodes (or data points) to a cluster using our pruning mechanism
 	 */
 	public void assignmentBounds(int k, int groupNumber) throws IOException {
+//		prunenode = 0;
+//		numComputeEuc = 0;
 		numeMovedTrajectories= 0;
 		long start = System.nanoTime();
 		Map<Integer, ArrayList<Integer>> idxNeedsIn = new HashMap<>();		//it stores all the idxs of trajectories that move in
@@ -1578,16 +1584,18 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 			group_drift[i] = Double.MAX_VALUE;// initialize as max in the begining
 		}
 		iterationTimes = 0;
-		double []iterationtime = new double[maxIteration+10];
-		double []centroidIndexingTime = new double[maxIteration+10];
-		double []iterationdis = new double[maxIteration+10];
-		double []iterationMean = new double[maxIteration+10];
-		double []iterationVariance = new double[maxIteration+10];
-		double []iterationIndexUpdates = new double[maxIteration+10];
+		double []iterationtime = new double[maxIteration];
+		double []prunednodes = new double[maxIteration];
+		double []centroidIndexingTime = new double[maxIteration];
+		double []iterationdis = new double[maxIteration];
+		double []iterationMean = new double[maxIteration];
+		double []iterationVariance = new double[maxIteration];
+		double []iterationIndexUpdates = new double[maxIteration];
 		binSortcenter = (int)((float)k/4);//this can be changed to a number, just like yinyang using 10
 		binSortcenter = 10;// just set for pick-means testing, comment it if not
-		recordHead(String.format("./logs/fmeans/%s%d-%d-", datafilename, k, fairgroupNumber));	// write head for each file
-		for(; iterationTimes <= maxIteration+10; iterationTimes++){
+		recordHead(String.format("./logs/icde-pruning/%s_%d_%d-", datafilename, k, capacity));	// write head for each file
+		for(; iterationTimes < maxIteration; iterationTimes++){
+			prunenode = 0;
 			long startTime1 = System.nanoTime();
 			//System.out.println("------------------Yushuai"+"\n");
 			if(pckmeans)// we do not maintain any bound across the iterations
@@ -1660,15 +1668,20 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 
 			refinetime[counter] +=(endtime-startTime)/1000000000.0;
 			System.out.print("\niteration "+(iterationTimes+1)+", time cost: ");
+			iterationtime[iterationTimes] = (endtime-startTime1)/1000000000.0;
+			prunednodes[iterationTimes] = prunenode;
+
 			System.out.printf("%.5f", (endtime-startTime1)/1000000000.0);
 			System.out.println("s");
 
-			if (drfitSum <= 0.1 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
+			if (drfitSum <= 0.1 || iterationTimes >= maxIteration - 1) {//used to terminate as it does not need.
 			//if (drfitSum == 0 || iterationTimes >= maxIteration) {//used to terminate as it does not need.
 				runrecord.setIterationtimes(iterationTimes+1);
-				recordTime(String.format("./logs/fmeans/%s%d-%d-", datafilename, k, fairgroupNumber),
-						iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
+				recordTime(String.format("./logs/icde-pruning/%s_%d_%d-", datafilename, k, capacity),
+//						iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
+						prunednodes, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
 			//	maxIteration = iterationTimes-1;
+/*
 				if(runFairKmeans && weightOption >=3 ) // finish the stage 2
 					break; // convergence
 				else {// this is for fair k-means, run for stage 2, we use current centroid
@@ -1692,12 +1705,14 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				//	weightOption += 3;
 					System.out.println("\n =======starting the f-means: " + (weightOption - 1));
 				}
+
+ */
 			}
 
 			if(usingIndex && !indexPAMI && iterationTimes<2) {//scan from the rest
 			//	indexPAMI = changeAccessMode();
 			}
-			iterationtime[iterationTimes] = (endtime-startTime1)/1000000000.0;
+
 			ArrayList<Double> meanVariance = getDistanceDistribution();
 			iterationMean[iterationTimes] = meanVariance.get(0);
 			iterationVariance[iterationTimes] = meanVariance.get(1);
@@ -1840,6 +1855,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		// 2.Main iteration loop
 		iterationTimes = 0;
 		for(; iterationTimes <= maxIteration + 10; iterationTimes++){
+//			prunenode = 0;
 			long startTime1 = System.nanoTime();
 			if(pckmeans)		// we do not maintain any bound across the iterations
 			{
@@ -2041,13 +2057,13 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 						iterationtime, iterationdis, iterationMean, iterationVariance,iterationIndexUpdates, maxIteration);
 	 */
 	void recordTime(String fileName, double[] array1, double[] array2, double[] array3, double[] array4, double[] array5, int iterations) {
-		String contentString = "", contentString2 ="", contentString3="", contentString4="", contentString5="";
+		String contentString = "";//, contentString2 ="", contentString3="", contentString4="", contentString5="";
 		for(int i=0; i<maxIteration; i++) {
 			contentString += array1[i]+",";
-			contentString2 += array2[i]+",";
-			contentString3 += array3[i]+",";
-			contentString4 += array4[i]+",";
-			contentString5 += array5[i]+",";
+			// contentString2 += array2[i]+",";
+			// contentString3 += array3[i]+",";
+			// contentString4 += array4[i]+",";
+			// contentString5 += array5[i]+",";
 		}
 		Util.write(fileName+"time.csv", contentString+"\n");
 		// Util.write(fileName+"obj.csv", contentString2+"\n");
@@ -2785,9 +2801,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 */
 	void writelogs(int testTime, String indexname, String tab) throws FileNotFoundException {
 	//	String LOG_DIR = "./logs/vldb_logs1_pami20/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+k+"_"+indexname+"_"+capacity+".log";
-		String LOG_DIR = "./logs/pickmeans/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+k+"_"+indexname+"_"+capacity+".log";
-		PrintStream fileOut = new PrintStream(LOG_DIR);
-		System.setOut(fileOut);
+	// 	String LOG_DIR = "./logs/pickmeans/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+k+"_"+indexname+"_"+capacity+".log";
+	// 	PrintStream fileOut = new PrintStream(LOG_DIR);
+	//	System.setOut(fileOut);
 		for(int i=0; i<numberofComparison; i++) {			// show the time speedup over Lloyd algorithm
 			System.out.printf("%.2f",time[i]/testTime);
 			System.out.print(tab);
@@ -3282,6 +3298,11 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	 * we test different baselines, parameters,
 	 */
 	public void experiments(int []setK, int testTime) throws IOException, KeySizeException, KeyDuplicateException {
+		// set the parameter randomly
+		Random random = new Random();
+		capacity = random.nextInt(91) + 10;
+		capacity = 31;
+
 	//	plotData.runPlot("");
 		loadDataEuc(datafile, trajectoryNumber);	// load the data and create index
 		indexkmeans = new indexAlgorithm<>();
@@ -3289,13 +3310,15 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		if(runBalltreeOnly)
 			rootHKT = runIndexbuildQueuePoint(0, capacity, 10);//load the dataset and build one index for all testing methods
 	//	String LOG_DIR = "./logs/vldb_logs1_pami20/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+capacity+"_index.log";
-		String LOG_DIR = "./logs/pickmeans/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+capacity+"_index.log";
-		PrintStream fileOut = new PrintStream(LOG_DIR);
+	//	String LOG_DIR = "./logs/pickmeans/"+datafilename+"_"+trajectoryNumber+"_"+dimension+"_"+capacity+"_index.log";
+	//	PrintStream fileOut = new PrintStream(LOG_DIR);
 	//	System.setOut(fileOut);
 		long startTime1 = System.nanoTime();
 		rootBall = indexkmeans.buildBalltree2(dataMatrix, dimension, capacity, userID, userNumber); // capacity
 		long endtime = System.nanoTime();
 		indexingTime = (endtime-startTime1)/1000000000.0;
+		System.out.printf("indexing time: %f%n", indexingTime);
+
 		ArrayList<Double> raidus = new ArrayList<Double>();
 		ArrayList<Double> fatherdis = new ArrayList<Double>();
 		ArrayList<Double> numPoints = new ArrayList<Double>();
@@ -3310,7 +3333,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	//	System.out.println("aaa: "+indexkmeans.getcount(rootCover));
 	//	String groundTruthString = "dataset,k,dimension,trajectoryNumber,height,leafnode,radiusMean,radiusSD,fastest\n";//"grund-truth\n";
 		String groundTruthString ="";
-		System.out.println(String.format("HKT node:%d, Ball node:%d, Mtree node:%d", getNodesCount(rootHKT), getNodesCount(rootBall), getNodesCount(rootMtree)));
+		ballNode = getNodesCount(rootBall);
+		System.out.println(String.format("HKT node:%d, Ball node:%d, Mtree node:%d", getNodesCount(rootHKT), ballNode, getNodesCount(rootMtree)));
 		for(int i=0; i<numberofComparison; i++) {//only maintain the Lloyd's and Sequential as they will not be affected by the type of index
 			computations[i]	= 0;
 			time[i] 		= 0;
@@ -3364,7 +3388,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					//	min_time = testUndiscover(best_config, min_time);// for an future direction
 					//	min_time = testUniKSelective(best_config); //test representative
 						test_PICKmeans();
-					//	testFMeans();
+//						testFMeans();
 					}
 					counter = 13;//skip the first two as the processing is the same, index might be different as the capacity may be different
 				//	testIndex(best_config, min_time);
@@ -3378,15 +3402,15 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 				}
 			//	rankings(raidus, fatherdis, numPoints, nodeDepth, rootBall, leafnode, LloydandSeq, testTime, indexname);
 				LloydandSeq = true;
-				if(testTime>0)
-					writelogs(testTime, indexname, "\t");
+//				if(testTime>0)
+//					writelogs(testTime, indexname, "\t");
 			}
 		}
 	//	Util.write("groundtruth2.csv", groundTruthString);
 		long end = System.nanoTime();
 	//	System.out.println("evaluation time: "+(end-starttime)/1000000000.0);
 	//	Util.write("./logs/vldb_logs1_pami20/"+"time.txt", (end-starttime)/1000000000.0+","+ datafilename+"\n");
-		Util.write("./logs/pickmeans/"+"time.txt", (end-starttime)/1000000000.0+","+ datafilename+"\n");
+	//	Util.write("./logs/pickmeans/"+"time.txt", (end-starttime)/1000000000.0+","+ datafilename+"\n");
 		counter = 0;
 	}
 
@@ -3457,8 +3481,8 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		if(runBalltreeOnly)
 			rootHKT = runIndexbuildQueuePoint(0, capacity, 10);	// load the dataset and build one index for all testing methods
 
-		String LOG_DIR = String.format("./logs/pickmeans/%s_%d_%d_%d_index.log", datafilename, trajectoryNumber, dimension, capacity);
-		PrintStream fileOut = new PrintStream(LOG_DIR);
+	//	String LOG_DIR = String.format("./logs/pickmeans/%s_%d_%d_%d_index.log", datafilename, trajectoryNumber, dimension, capacity);
+	//	PrintStream fileOut = new PrintStream(LOG_DIR);
 		long startTime1 = System.nanoTime();
 		rootBall = indexkmeans.buildBalltree2(dataMatrix, dimension, capacity, userID, userNumber); // capacity
 		rootball_for_1nn = rootBall;
@@ -3551,7 +3575,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					dec.format(coverPointsMean/capacity)+","+dec.format(coverPointsSD/capacity)+","+
 				dec.format(disFatherMean)+","+dec.format(disFatherSD);
 		//	Util.write("./logs/vldb_logs1_pami20/"+"groundtruth_rank.csv", content+","+aString+"\n");
-			Util.write("./logs/pickmeans/"+"groundtruth_rank.csv", content+","+aString+"\n");
+		//	Util.write("./logs/pickmeans/"+"groundtruth_rank.csv", content+","+aString+"\n");
 		//	Util.write("groundtruth_align.csv", content+"\n");
 		}
 	}
@@ -3814,157 +3838,160 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		// maxIteration = -1;	//just run single time of iteration, to avoid to be too slow.
 
 		// create a file to store memory cost
-		FileWriter memoryCostWriter = new FileWriter("./logs/fmeans/" + datafilename + k + "_memory_cost.txt");
+//		FileWriter memoryCostWriter = new FileWriter("./logs/icde-memory/" + datafilename + k + "_memory_cost.txt");
+//
+//		System.out.println("====Lloyd");			//2
+////		memoryCostWriter.write("====Lloyd" + "\n");
+//		int sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
+//		setSign(sign);
+//		skipMethods();
+////	 	staticKmeans(false, false, false);	// the lloyd's algorithm, the standard method
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write(memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:" + memoryUsage[counter]);
+//		maxIteration = MAXITE;
 
-		System.out.println("====Lloyd");			//2
-		memoryCostWriter.write("====Lloyd" + "\n");
-		int sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
-		setSign(sign);
-	//	skipMethods();
-	 	staticKmeans(false, false, false);	// the lloyd's algorithm, the standard method
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:" + memoryUsage[counter]);
-		maxIteration = MAXITE;
+//		System.out.println("====Sequential-elkan");//3
+//		memoryCostWriter.write("====Sequential-elkan" + "\n");
+//		int signelkan[] = {0,0,1,0,0,0,0,0,0,0,0,0,0};
+//		setSign(signelkan);
+////		skipMethods();
+//		staticKmeans(false, true, false);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-		System.out.println("====Sequential-elkan");//3
-		memoryCostWriter.write("====Sequential-elkan" + "\n");
-		int signelkan[] = {0,0,1,0,0,0,0,0,0,0,0,0,0};
-		setSign(signelkan);
-		skipMethods();
-	//	staticKmeans(false, true, false);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		System.out.println("====Sequential-Hamerly");// hamerly
+//		memoryCostWriter.write("====Sequential-Hamerly" + "\n");
+//		int signharmly[] = {0,0,0,1,0,0,0,0,0,0,0,0,0};
+//		setSign(signharmly);
+////		skipMethods();
+//		staticKmeans(false, true, false);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-		System.out.println("====Sequential-Hamerly");// hamerly
-		memoryCostWriter.write("====Sequential-Hamerly" + "\n");
-		int signharmly[] = {0,0,0,1,0,0,0,0,0,0,0,0,0};
-		setSign(signharmly);
-	//	skipMethods();
-		staticKmeans(false, true, false);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		System.out.println("====Drake12-SortCenter");//5 drake
+//		memoryCostWriter.write("====Drake12-SortCenter" + "\n");
+//		int signdrake[] = {0,0,0,0,1,0,0,0,0,0,0,0,0};
+//		setSign(signdrake);
+//	//	skipMethods();
+//		binSortcenter = (int)((float)k/4);
+//		staticKmeans(false, true, false);//test the drake12
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-		System.out.println("====Drake12-SortCenter");//5 drake
-		memoryCostWriter.write("====Drake12-SortCenter" + "\n");
-		int signdrake[] = {0,0,0,0,1,0,0,0,0,0,0,0,0};
-		setSign(signdrake);
-	//	skipMethods();
-		binSortcenter = (int)((float)k/4);
-		staticKmeans(false, true, false);//test the drake12
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		System.out.println("====Heap-15");// heap 8
+//		memoryCostWriter.write("====Heap-15" + "\n");
+//		int signheap[] = {0,0,0,0,0,0,0,1,0,0,0,0,0};
+//		setSign(signheap);
+//	//	skipMethods();
+//		staticKmeans(false, true, false);//test the heap
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-		System.out.println("====Heap-15");// heap 8
-		memoryCostWriter.write("====Heap-15" + "\n");
-		int signheap[] = {0,0,0,0,0,0,0,1,0,0,0,0,0};
-		setSign(signheap);
-	//	skipMethods();
-		staticKmeans(false, true, false);//test the heap
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-		pckmeanspointboundRecursive = false;
-		System.out.println("====Sequential-Yinyang");//yinyang
-		memoryCostWriter.write("====Sequential-Yinyang" + "\n");
-		int signYinyang[] = {0,0,1,0,0,0,0,0,1,0,0,0,0};
-		setSign(signYinyang);
-	//	skipMethods();
-		staticKmeans(false, true, false);
-		memoryUsage[counter] = getAllMemory(k/10, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-		maxIteration = MAXITE;
-		int pami_sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
-		System.out.println("====PAMI20");//pami 20 method
-		memoryCostWriter.write("====PAMI20" + "\n");
-		pami20 = true;
-		setSign(pami_sign);
-	//	skipMethods();
-		staticKmeans(false, false, false);// the lloyd's algorithm, the standard method
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-		pami20 = false;
+//		pckmeanspointboundRecursive = false;
+//		System.out.println("====Sequential-Yinyang");//yinyang
+//		memoryCostWriter.write("====Sequential-Yinyang" + "\n");
+//		int signYinyang[] = {0,0,1,0,0,0,0,0,1,0,0,0,0};
+//		setSign(signYinyang);
+//	//	skipMethods();
+//		staticKmeans(false, true, false);
+//		memoryUsage[counter] = getAllMemory(k/10, 2);
+//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
 
-		maxIteration = MAXITE;
+		// 11111
+//		maxIteration = MAXITE;
+//		int pami_sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
+//		System.out.println("====PAMI20");//pami 20 method
+////		memoryCostWriter.write("====PAMI20" + "\n");
+//		pami20 = true;
+//		setSign(pami_sign);
+//		skipMethods();
+////		staticKmeans(false, false, false);// the lloyd's algorithm, the standard method
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write(memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		pami20 = false;
 
-		System.out.println("====Index-PAMI: scan every centroid");
-		memoryCostWriter.write("====Index-PAMI: scan every centroid" + "\n");
-		int signBall[] = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		setSign(signBall);
-		// maxIteration = -1;
-	//	skipMethods();
-		staticKmeans(true, false, true);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-		maxIteration = MAXITE;
+
+		// 11111111
+//		maxIteration = MAXITE;
+//		System.out.println("====Index-PAMI: scan every centroid");
+////		memoryCostWriter.write("====Index-PAMI: scan every centroid" + "\n");
+//		int signBall[] = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//		setSign(signBall);
+//		// maxIteration = -1;
+//	//	skipMethods();
+//		staticKmeans(true, false, true);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+////		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
 
-		System.out.println("====pick-means with no bound on knn and using queue traversal");// without using our accelerating tricks
-		memoryCostWriter.write("====pick-means with no bound on knn and using queue traversal" + "\n");
-		pckmeans = true;
-		int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-		setSign(signBall1);
-		// maxIteration = -1;
-	//	skipMethods();
-		staticKmeans(true, false, true);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-		maxIteration = MAXITE;
+//		maxIteration = MAXITE;
+//		System.out.println("====pick-means with no bound on knn and using queue traversal");// without using our accelerating tricks
+////		memoryCostWriter.write("====pick-means with no bound on knn and using queue traversal" + "\n");
+//		pckmeans = true;
+//		int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+//		setSign(signBall1);
+//		// maxIteration = -1;
+//		skipMethods();
+////		staticKmeans(true, false, true);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+//		memoryCostWriter.write(memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		maxIteration = MAXITE;
 
-		System.out.println("====pick-means with bound on knn and using queue traversal");// without using our accelerating tricks
-		memoryCostWriter.write("====pick-means with bound on knn and using queue traversal" + "\n");
-		pckmeans = true;
-		pckmeansbound = true;
-	//	int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-		setSign(signBall1);
-	//	skipMethods();
-		staticKmeans(true, false, true);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		System.out.println("====pick-means with bound on knn and using queue traversal");// without using our accelerating tricks
+////		memoryCostWriter.write("====pick-means with bound on knn and using queue traversal" + "\n");
+//		pckmeans = true;
+//		pckmeansbound = true;
+//	//	int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+//		setSign(signBall1);
+//	//	skipMethods();
+//		staticKmeans(true, false, true);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+////		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-		System.out.println("====pick-means with no interbound but with recursive traversal");// the most efficent one
-		memoryCostWriter.write("====pick-means with no interbound but with recursive traversal" + "\n");
-		pckmeans = true;
-		pckmeansbound = true;
-		pckmeanspointboundRecursive = true;
-		pckmeansUsinginterbound = false;//not using the inter bound
-		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-		setSign(signBall2);
-	//	skipMethods();
-		staticKmeans(true, false, true);
-		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
-		pckmeans = false;
+//		System.out.println("====pick-means with no interbound but with recursive traversal");// the most efficent one
+////		memoryCostWriter.write("====pick-means with no interbound but with recursive traversal" + "\n");
+//		pckmeans = true;
+//		pckmeansbound = true;
+//		pckmeanspointboundRecursive = true;
+//		pckmeansUsinginterbound = false;//not using the inter bound
+//		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+//		setSign(signBall2);
+//	//	skipMethods();
+//		staticKmeans(true, false, true);
+//		memoryUsage[counter] = getAllMemory(0, 2);
+////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+////		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		pckmeans = false;
 
 		System.out.println("====pick-means with recursive traversal");// the most efficient one we propose
-		memoryCostWriter.write("====pick-means with recursive traversal" + "\n");
+	//	memoryCostWriter.write("====pick-means with recursive traversal" + "\n");
 	//	maxIteration = 100;
 		pckmeans = true;
 		pckmeansbound = true;
 		pckmeanspointboundRecursive = true;
 		pckmeansUsinginterbound = true;
+		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
 		setSign(signBall2);
-	//	skipMethods();
+//		skipMethods();
 	 	staticKmeans(true, false, true);
 		memoryUsage[counter] = getAllMemory(0, 2);
-		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-		System.out.println("memory cost:"+memoryUsage[counter]+",");
+//		memoryCostWriter.write(memoryUsage[counter] + "\n");
+//		System.out.println("memory cost:"+memoryUsage[counter]+",");
 		pckmeans = false;
 
 		// close the memory cost writer
-		memoryCostWriter.close();
+//		memoryCostWriter.close();
 	}
 
 	void test_S_means() throws IOException{
@@ -4443,5 +4470,42 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		}
 		knnWriter.close();
 	}
-	
+
+	// get the coordinates of internal ball-tree nodes
+	public void getInternalNodes(int height, String outputFileName) throws IOException, KeySizeException, KeyDuplicateException {
+		capacity = 10;
+		loadDataEuc(datafile, trajectoryNumber);	// load the data and create index
+		indexkmeans = new indexAlgorithm<>();
+
+		indexNode rootBall = indexkmeans.buildBalltree2(dataMatrix, dimension, capacity, userID, userNumber);
+		// ballNode = getNodesCount(rootBall);
+		getInternalNodes1(height, outputFileName, rootBall);
+		System.out.println(outputFileName);
+	}
+
+	public void getInternalNodes1(int height, String outputFileName, indexNode node) {
+		if (height == 0) {
+			String filePath = "E:\\dask-means\\dataset-pivot-1024\\" + outputFileName;
+			String dataToAppend;
+			if (node.pivot.length == 2) {
+				dataToAppend = String.format(",%.2f,%.2f,0.0", node.pivot[0], node.pivot[1]);
+			} else {
+				dataToAppend = String.format(",%.2f,%.2f,%.2f", node.pivot[0], node.pivot[1], node.pivot[2]);
+			}
+			try {
+				try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
+					long fileLength = raf.length();
+					raf.seek(fileLength);
+					raf.writeBytes(dataToAppend);
+                }
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+		} else {
+			for(indexNode child: node.nodeList) {
+				getInternalNodes1(height - 1, outputFileName, child);
+			}
+		}
+	}
 }
