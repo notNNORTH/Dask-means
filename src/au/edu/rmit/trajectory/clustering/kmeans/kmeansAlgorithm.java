@@ -3387,7 +3387,7 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 					//	min_time = testExistingSelective(best_config);
 					//	min_time = testUndiscover(best_config, min_time);// for an future direction
 					//	min_time = testUniKSelective(best_config); //test representative
-						test_PICKmeans();
+						test_DasKmeans();
 //						testFMeans();
 					}
 					counter = 13;//skip the first two as the processing is the same, index might be different as the capacity may be different
@@ -3829,9 +3829,9 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 	}
 
 	/*
-	 * we put all the memory-efficient methods, for our algorithm pick-means submitted to ICML 2021
+	 * we put all the memory-efficient methods
 	 */
-	void test_PICKmeans() throws IOException{
+	void test_DasKmeans() throws IOException{
 		pckmeans = false;
 		pckmeansbound = false;
 		pckmeanspointboundRecursive = false;
