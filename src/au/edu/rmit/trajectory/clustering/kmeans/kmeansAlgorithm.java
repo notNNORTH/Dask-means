@@ -3838,141 +3838,137 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		// maxIteration = -1;	//just run single time of iteration, to avoid to be too slow.
 
 		// create a file to store memory cost
-//		FileWriter memoryCostWriter = new FileWriter("./logs/icde-memory/" + datafilename + k + "_memory_cost.txt");
-//
-//		System.out.println("====Lloyd");			//2
-////		memoryCostWriter.write("====Lloyd" + "\n");
-//		int sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
-//		setSign(sign);
+		FileWriter memoryCostWriter = new FileWriter("./logs/icde-memory/" + datafilename + k + "_memory_cost.txt");
+
+		System.out.println("====Lloyd");			//2
+//		memoryCostWriter.write("====Lloyd" + "\n");
+		int sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
+		setSign(sign);
+		skipMethods();
+//	 	staticKmeans(false, false, false);	// the lloyd's algorithm, the standard method
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write(memoryUsage[counter] + "\n");
+		System.out.println("memory cost:" + memoryUsage[counter]);
+		maxIteration = MAXITE;
+
+		System.out.println("====Sequential-elkan");//3
+		memoryCostWriter.write("====Sequential-elkan" + "\n");
+		int signelkan[] = {0,0,1,0,0,0,0,0,0,0,0,0,0};
+		setSign(signelkan);
 //		skipMethods();
-////	 	staticKmeans(false, false, false);	// the lloyd's algorithm, the standard method
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write(memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:" + memoryUsage[counter]);
-//		maxIteration = MAXITE;
+		staticKmeans(false, true, false);
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-//		System.out.println("====Sequential-elkan");//3
-//		memoryCostWriter.write("====Sequential-elkan" + "\n");
-//		int signelkan[] = {0,0,1,0,0,0,0,0,0,0,0,0,0};
-//		setSign(signelkan);
-////		skipMethods();
-//		staticKmeans(false, true, false);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-//		System.out.println("====Sequential-Hamerly");// hamerly
-//		memoryCostWriter.write("====Sequential-Hamerly" + "\n");
-//		int signharmly[] = {0,0,0,1,0,0,0,0,0,0,0,0,0};
-//		setSign(signharmly);
-////		skipMethods();
-//		staticKmeans(false, true, false);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-//		System.out.println("====Drake12-SortCenter");//5 drake
-//		memoryCostWriter.write("====Drake12-SortCenter" + "\n");
-//		int signdrake[] = {0,0,0,0,1,0,0,0,0,0,0,0,0};
-//		setSign(signdrake);
-//	//	skipMethods();
-//		binSortcenter = (int)((float)k/4);
-//		staticKmeans(false, true, false);//test the drake12
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-//		System.out.println("====Heap-15");// heap 8
-//		memoryCostWriter.write("====Heap-15" + "\n");
-//		int signheap[] = {0,0,0,0,0,0,0,1,0,0,0,0,0};
-//		setSign(signheap);
-//	//	skipMethods();
-//		staticKmeans(false, true, false);//test the heap
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-//		pckmeanspointboundRecursive = false;
-//		System.out.println("====Sequential-Yinyang");//yinyang
-//		memoryCostWriter.write("====Sequential-Yinyang" + "\n");
-//		int signYinyang[] = {0,0,1,0,0,0,0,0,1,0,0,0,0};
-//		setSign(signYinyang);
-//	//	skipMethods();
-//		staticKmeans(false, true, false);
-//		memoryUsage[counter] = getAllMemory(k/10, 2);
-//		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-
-		// 11111
-//		maxIteration = MAXITE;
-//		int pami_sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
-//		System.out.println("====PAMI20");//pami 20 method
-////		memoryCostWriter.write("====PAMI20" + "\n");
-//		pami20 = true;
-//		setSign(pami_sign);
+		System.out.println("====Sequential-Hamerly");// hamerly
+		memoryCostWriter.write("====Sequential-Hamerly" + "\n");
+		int signharmly[] = {0,0,0,1,0,0,0,0,0,0,0,0,0};
+		setSign(signharmly);
 //		skipMethods();
-////		staticKmeans(false, false, false);// the lloyd's algorithm, the standard method
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write(memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-//		pami20 = false;
+		staticKmeans(false, true, false);
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+
+		System.out.println("====Drake12-SortCenter");//5 drake
+		memoryCostWriter.write("====Drake12-SortCenter" + "\n");
+		int signdrake[] = {0,0,0,0,1,0,0,0,0,0,0,0,0};
+		setSign(signdrake);
+	//	skipMethods();
+		binSortcenter = (int)((float)k/4);
+		staticKmeans(false, true, false);//test the drake12
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+
+		System.out.println("====Heap-15");// heap 8
+		memoryCostWriter.write("====Heap-15" + "\n");
+		int signheap[] = {0,0,0,0,0,0,0,1,0,0,0,0,0};
+		setSign(signheap);
+	//	skipMethods();
+		staticKmeans(false, true, false);//test the heap
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+
+		pckmeanspointboundRecursive = false;
+		System.out.println("====Sequential-Yinyang");//yinyang
+		memoryCostWriter.write("====Sequential-Yinyang" + "\n");
+		int signYinyang[] = {0,0,1,0,0,0,0,0,1,0,0,0,0};
+		setSign(signYinyang);
+	//	skipMethods();
+		staticKmeans(false, true, false);
+		memoryUsage[counter] = getAllMemory(k/10, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+
+		maxIteration = MAXITE;
+		int pami_sign[] = {1,0,0,0,0,0,0,0,0,0,0,0,0};
+		System.out.println("====PAMI20");//pami 20 method
+//		memoryCostWriter.write("====PAMI20" + "\n");
+		pami20 = true;
+		setSign(pami_sign);
+		skipMethods();
+//		staticKmeans(false, false, false);// the lloyd's algorithm, the standard method
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write(memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+		pami20 = false;
+
+		maxIteration = MAXITE;
+		System.out.println("====Index-PAMI: scan every centroid");
+//		memoryCostWriter.write("====Index-PAMI: scan every centroid" + "\n");
+		int signBall[] = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		setSign(signBall);
+		// maxIteration = -1;
+	//	skipMethods();
+		staticKmeans(true, false, true);
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
 
-		// 11111111
-//		maxIteration = MAXITE;
-//		System.out.println("====Index-PAMI: scan every centroid");
-////		memoryCostWriter.write("====Index-PAMI: scan every centroid" + "\n");
-//		int signBall[] = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//		setSign(signBall);
-//		// maxIteration = -1;
-//	//	skipMethods();
+		maxIteration = MAXITE;
+		System.out.println("====pick-means with no bound on knn and using queue traversal");// without using our accelerating tricks
+//		memoryCostWriter.write("====pick-means with no bound on knn and using queue traversal" + "\n");
+		pckmeans = true;
+		int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+		setSign(signBall1);
+		// maxIteration = -1;
+		skipMethods();
 //		staticKmeans(true, false, true);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-////		System.out.println("memory cost:"+memoryUsage[counter]+",");
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write(memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+		maxIteration = MAXITE;
 
+		System.out.println("====pick-means with bound on knn and using queue traversal");// without using our accelerating tricks
+//		memoryCostWriter.write("====pick-means with bound on knn and using queue traversal" + "\n");
+		pckmeans = true;
+		pckmeansbound = true;
+	//	int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+		setSign(signBall1);
+	//	skipMethods();
+		staticKmeans(true, false, true);
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
 
-//		maxIteration = MAXITE;
-//		System.out.println("====pick-means with no bound on knn and using queue traversal");// without using our accelerating tricks
-////		memoryCostWriter.write("====pick-means with no bound on knn and using queue traversal" + "\n");
-//		pckmeans = true;
-//		int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-//		setSign(signBall1);
-//		// maxIteration = -1;
-//		skipMethods();
-////		staticKmeans(true, false, true);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write(memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
-//		maxIteration = MAXITE;
-
-//		System.out.println("====pick-means with bound on knn and using queue traversal");// without using our accelerating tricks
-////		memoryCostWriter.write("====pick-means with bound on knn and using queue traversal" + "\n");
-//		pckmeans = true;
-//		pckmeansbound = true;
-//	//	int signBall1[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-//		setSign(signBall1);
-//	//	skipMethods();
-//		staticKmeans(true, false, true);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-////		System.out.println("memory cost:"+memoryUsage[counter]+",");
-
-//		System.out.println("====pick-means with no interbound but with recursive traversal");// the most efficent one
-////		memoryCostWriter.write("====pick-means with no interbound but with recursive traversal" + "\n");
-//		pckmeans = true;
-//		pckmeansbound = true;
-//		pckmeanspointboundRecursive = true;
-//		pckmeansUsinginterbound = false;//not using the inter bound
-//		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
-//		setSign(signBall2);
-//	//	skipMethods();
-//		staticKmeans(true, false, true);
-//		memoryUsage[counter] = getAllMemory(0, 2);
-////		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
-////		System.out.println("memory cost:"+memoryUsage[counter]+",");
-//		pckmeans = false;
+		System.out.println("====pick-means with no interbound but with recursive traversal");// the most efficent one
+//		memoryCostWriter.write("====pick-means with no interbound but with recursive traversal" + "\n");
+		pckmeans = true;
+		pckmeansbound = true;
+		pckmeanspointboundRecursive = true;
+		pckmeansUsinginterbound = false;//not using the inter bound
+		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+		setSign(signBall2);
+	//	skipMethods();
+		staticKmeans(true, false, true);
+		memoryUsage[counter] = getAllMemory(0, 2);
+		memoryCostWriter.write("memory cost:" + memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
+		pckmeans = false;
 
 		System.out.println("====pick-means with recursive traversal");// the most efficient one we propose
 	//	memoryCostWriter.write("====pick-means with recursive traversal" + "\n");
@@ -3981,13 +3977,13 @@ public class kmeansAlgorithm<T> extends KPathsOptimization<T>{
 		pckmeansbound = true;
 		pckmeanspointboundRecursive = true;
 		pckmeansUsinginterbound = true;
-		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
+//		int signBall2[] = {0,1,0,0,0,0,0,0,0,0,0,0,0};
 		setSign(signBall2);
 //		skipMethods();
 	 	staticKmeans(true, false, true);
 		memoryUsage[counter] = getAllMemory(0, 2);
-//		memoryCostWriter.write(memoryUsage[counter] + "\n");
-//		System.out.println("memory cost:"+memoryUsage[counter]+",");
+		memoryCostWriter.write(memoryUsage[counter] + "\n");
+		System.out.println("memory cost:"+memoryUsage[counter]+",");
 		pckmeans = false;
 
 		// close the memory cost writer
